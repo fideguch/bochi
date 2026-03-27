@@ -269,6 +269,9 @@ Discord: check sender_id against paired user.
 | `memory-spec.md` | Mode 4 |
 | `companion-spec.md` | Mode 5 |
 | `pdca-spec.md` | Before Mode 2 |
+| `discord-setup.md` | Discord setup |
+| `skill-tracking-spec.md` | Skill tracking |
+| `mobile-first-spec.md` | Mobile optimization |
 
 **Do NOT pre-load all references at skill invocation.**
 Load only the references needed for the current mode/phase.
