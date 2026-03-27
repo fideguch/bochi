@@ -11,6 +11,8 @@ Neither IDEO Design Thinking (expansion only) nor OpenAI Deep Research (research
 ### 2. Learning Accumulation
 `learned-sources.md` + `feedback-log.md` + PostToolUse Hooks auto-record. Research precision improves with use. Miro AI / Juma / Perplexity have no accumulation mechanism.
 
+> The PostToolUse Hook (`bochi-feedback-capture.sh`) is included in [my_dotfiles](https://github.com/fideguch/my_dotfiles) under `claude/scripts/hooks/` and symlinked to `~/.claude/scripts/hooks/` by `set_up.sh`.
+
 ### 3. Native PM Pipeline Integration
 Fits as the upstream stage of `/brainstorming` → `/requirements_designer` → `/speckit-bridge`.
 Auto-handoff to `/pm-discovery-interview-prep` connects directly to user validation.
@@ -71,7 +73,9 @@ Phase F: Next Steps — brainstorming / interview-prep / continue
 | Bug fixes for existing product | Not a new idea | /brainstorming |
 | Urgent decisions | Full 6-phase flow takes time | Ask Claude directly |
 
-## Evaluation Score
+## Design Target Scores
+
+> The following are self-assessed design target scores, not third-party evaluations.
 
 | Category | Score |
 |----------|-------|
