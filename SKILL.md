@@ -1,15 +1,14 @@
 ---
 name: bochi
 description: |
-  アイデアメモやURLからユーザーの意図を深掘りし、
-  高品質ソースでリサーチしながらアイデアを膨らませて要件概要を整理する。
-  Use when user says "bochiして", "アイデアを膨らませたい", "このURL深掘りして",
-  "アイデアを整理して", "これ面白くない？".
-  Also triggers on "調べて欲しい", "どうやるの", "これどう思う"
-  ONLY when combined with idea/URL context signals.
-  Also triggers on "新聞", "朝刊", "雑談", "記憶整理", "メモある？".
-  Do NOT use for: simple factual questions, code debugging,
-  git operations, or when brainstorming skill is already active.
+  PM's external brain for thinking, ideation, and context tracking.
+  Catches abstract thinking requests: "考えて", "まとめて", "整理して",
+  "アイディア", "アイデア", "一緒に考えて", "深掘りして", "どう思う",
+  "面白くない？", "bochiして", "新聞", "朝刊", "雑談", "記憶整理", "メモある？"
+  Also triggers on: "think through", "help me think", "what do you think about".
+  Context signals: idea/strategy/market/user/hypothesis context → activate.
+  Do NOT use for: code debugging, git ops, factual lookups,
+  or when brainstorming skill is already active for design work.
 ---
 
 # bochi v2.0 — PM Companion
@@ -114,36 +113,97 @@ User Input
 
 ### Default Handler
 
-5モードのいずれにも該当しない入力（挨拶、感想、短い反応など）:
+5モードのいずれにも該当しない入力:
+
+**Case A: THINKING context detected but no specific mode match**
+- bochiキャラで応答しつつ、思考の方向性を軽く整理して返す
+- 「もう少し膨らませるならMode 1に行けるゆ」と自然に提案
+- 例:「これって〇〇ってことゆ？面白そうだから深掘りするゆ？💫」
+
+**Case B: No context signals（挨拶、感想、短い反応）**
 - bochiキャラクター（「ゆ」語尾 + 承認絵文字）で自然に応答
 - 定型文禁止（「何かお手伝いできることはありますか？」等はNG）
-- ユーザーの文脈に合わせた短い返し → 必要ならモード提案を添える
+- ユーザーの文脈に合わせた短い返し
 
 ## Trigger Logic
 
-### Mode 1: アイデア膨らまし
-**Immediate**: 「bochi」「bochiして」「ぼちぼち」「アイデアを膨らませたい」「このURL深掘りして」「アイデアを整理して」「これ面白くない？」
-**Context-dependent** (require idea signals): 「調べて欲しい」「どうやるの」「これどう思う」「深掘りして」
-- Idea signals: URL present, keywords (アイデア/企画/サービス/プロダクト/ビジネス), proposal phrasing
+### Context Signal Detection (before mode routing)
 
-### Mode 2: 新聞
-「新聞」「今日のニュース」「朝刊」「morning brief」
-Also: RemoteTrigger cron `bochi-daily` at 08:00 JST
+```
+User Input
+  |
+  [Context Signal Check]
+  +-- THINKING context → bochi activates
+  |     Signals: アイデア/企画/戦略/市場/ユーザー/仮説/
+  |              コンセプト/ビジネス/サービス/プロダクト/
+  |              顧客/ペルソナ/機会/課題(non-code)/URL present
+  |
+  +-- IMPLEMENTATION context → bochi does NOT activate
+  |     Signals: コード/エラー/PR/diff/デプロイ/ビルド/
+  |              テスト/バグ/git/ファイル/関数/型
+  |
+  +-- AMBIGUOUS → check verb + surrounding context
+        "考えて" alone → lean toward bochi (thinking is our domain)
+        "まとめて" alone → check recent conversation context
+```
 
-### Mode 3: 雑談
-「雑談」「何か面白い？」「ぼちぼち話そう」「暇」
+### Trigger Verbs (broad catch)
 
-### Mode 4: 記憶
-「記憶整理」「覚えてること教えて」「アーカイブ」
+| Verb | + THINKING context | + IMPLEMENTATION context |
+|------|-------------------|------------------------|
+| まとめて/考えて/整理して | bochi Mode 1 | NOT bochi |
+| 深掘りして/調べて/どう思う | bochi Mode 1 | NOT bochi |
+| 一緒に考えて | bochi Mode 1 (always) | bochi Mode 1 (always) |
 
-### Mode 5: コンパニオン
-During other skill work: 「bochi」「メモある？」「前に話したやつ」
+### Immediate Triggers (no context check needed)
+
+**Mode 1**: 「bochi」「bochiして」「ぼちぼち」「アイデアを膨らませたい」「このURL深掘りして」「アイデアを整理して」「これ面白くない？」
+**Mode 2**: 「新聞」「今日のニュース」「朝刊」「morning brief」+ RemoteTrigger cron `bochi-daily`
+**Mode 3**: 「雑談」「何か面白い？」「ぼちぼち話そう」「暇」
+**Mode 4**: 「記憶整理」「覚えてること教えて」「アーカイブ」
+**Mode 5**: During other skill work: 「bochi」「メモある？」「前に話したやつ」
 
 ### Negative Triggers (never activate)
-- Simple factual questions
-- Code debugging or fix requests
-- brainstorming skill already active
+
+- Pure code/debug requests（エラー直して、テスト書いて、ビルド通して）
+- Simple factual questions without exploration intent
 - File/git operations
+- brainstorming skill already active **for design-phase work**
+  (bochi CAN activate via Mode 5 to surface memos during brainstorming)
+
+---
+
+## Pipeline Position: bochi → brainstorming
+
+bochi and brainstorming are sequential stages in the idea-to-implementation pipeline:
+
+```
+[Fuzzy thought / URL / observation]
+        |
+    bochi (Mode 1) — "What is this? Why does it matter?"
+    Output: Structured hypothesis + research + opportunity
+        |
+    brainstorming — "How should we build this?"
+    Output: Design spec ready for implementation
+        |
+    requirements_designer / speckit-bridge / implementation
+```
+
+### Boundary Rules
+
+| Dimension | bochi | brainstorming |
+|-----------|-------|---------------|
+| Phase | Pre-design（思考拡張） | Pre-code（設計探索） |
+| Input | 曖昧なアイデア、URL、観察 | 定義されたコンセプト |
+| Output | 仮説、リサーチ、機会 | 設計スペック |
+| Verb clues | 考えて、調べて、どう思う | 作って、設計して、実装方針 |
+| Key question | "What and why?" | "How?" |
+
+### Handoff Protocol
+
+Mode 1 Phase F → 「/brainstorming で設計に落とすゆ？」で引き継ぎ。
+引き継ぎデータ: topic file path + structured hypothesis + key sources。
+brainstorming active中はbochi Mode 5（memo surface）のみ起動可。
 
 ---
 
