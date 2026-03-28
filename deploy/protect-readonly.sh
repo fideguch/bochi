@@ -27,6 +27,8 @@ echo "$FILE_PATH" | grep -q "bochi-data" && exit 0
 
 # BLOCK: protected paths
 if echo "$FILE_PATH" | grep -qE '(\.claude/skills|\.claude/channels|\.claude/plugins|\.claude/hooks|settings\.local\.json|settings\.json|SKILL\.md|CLAUDE\.md|lightsail-claude|access\.json|hooks\.json|server\.ts)'; then
+  LOG_FILE="$HOME/.claude/bochi-data/errors/hook-blocks.log"
+  echo "$(date -Iseconds) BLOCKED: $FILE_PATH" >> "$LOG_FILE" 2>/dev/null || true
   echo "BLOCKED: この領域は保護されているゆ。bochi-data/ のみ書き込み可能ゆ。" >&2
   exit 2
 fi
