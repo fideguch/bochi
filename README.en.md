@@ -81,13 +81,22 @@ Input (memo or URL)
 ```
 ~/.claude/bochi-data/
 ├── index.jsonl              # Master search index (JSONL append)
-├── user-profile.yaml        # Interests, settings
+├── user-profile.yaml        # Interests, category weights, settings
+├── seen.jsonl               # Seen article URL tracking (dedup)
 ├── topics/                  # Researched topics (1 file each)
-├── memos/                   # Cross-context memos
+├── memos/                   # Cross-context memos (Discord/CLI)
 ├── newspaper/               # Newspaper archive
 ├── reflections/             # PDCA daily reflections
 ├── stats/usage.jsonl        # Skill usage stats
 ├── sources/verified.jsonl   # Verified source quality DB
+├── cache/                   # Performance cache layer
+│   ├── newspaper-draft.md   # Pre-generated newspaper (06:00 JST cron)
+│   ├── trending/*.jsonl     # Category trending article pool
+│   ├── meta.json            # Cache TTL management
+│   ├── calendar.md          # Google Calendar cache (S3 sync)
+│   └── gmail.md             # Gmail top 10 cache (S3 sync)
+├── errors/                  # Error logs + diagnosis reports
+│   └── known-patterns.jsonl # Known error pattern DB
 └── archive/                 # Archived old data (never deleted)
 ```
 
@@ -135,32 +144,56 @@ Input (memo or URL)
 | Product | 16 | 16 | Vision added. S3 scripts not yet implemented |
 | **Total** | **72** | **78** | **Grade C+ → targeting B+(87)** |
 
+## Architecture
+
+### Owner-Only Learning
+
+Owner (paired user) gets full interaction + learn + memorize. Others get read-only responses.
+
+### Discord UX
+
+- React-first (HARD-GATE): reaction before any text
+- Section splitting: each message <=300 chars, reply-reference chains
+- Progressive Disclosure: react -> placeholder -> edit -> final reply (push notification)
+
+### External Dependencies
+
+| Dependency | Required | Purpose |
+|------------|----------|---------|
+| Discord MCP Plugin | Optional | Discord DM integration |
+| Context7 MCP | Optional | Library docs in tech research |
+| gog CLI | Optional | Google Calendar/Gmail sync (Mac only) |
+| github_project_manager skill | Optional | Mode 7 GitHub Issue delegation |
+| Figma MCP | Optional | FigJam diagram generation |
+
 ## Folder Structure
 
 ```
 bochi/
-├── SKILL.md                        # Main skill (433 lines, 5-mode router + context signals)
+├── SKILL.md                        # Main skill (329 lines, 7-mode router)
 ├── README.md                       # Japanese documentation
 ├── README.en.md                    # This file
-└── references/
-    ├── quality-criteria.md         # E-E-A-T quality scoring
-    ├── trusted-domains.md          # Trusted domain list
-    ├── research-strategy.md        # Domain-specific research strategy
-    ├── socratic-levels.md          # Socratic 8-level questions
-    ├── expansion-framework.md      # SCAMPER expansion framework
-    ├── critique-checklist.md       # Critique checklist
-    ├── output-template.md          # Output template (OST-integrated)
-    ├── interview-handoff.md        # interview-prep handoff spec
-    ├── feedback-log.md             # User feedback history (auto-append)
-    ├── learned-sources.md          # High-quality source accumulation
-    ├── newspaper-spec.md           # [v2.0] Newspaper mode spec
-    ├── pdca-spec.md                # [v2.0] PDCA daily reflection spec
-    ├── casual-chat-spec.md         # [v2.0] Casual chat mode spec
-    ├── memory-spec.md              # [v2.0] Memory management spec
-    ├── companion-spec.md           # [v2.0] Companion mode spec
-    ├── discord-setup.md            # [v2.0] Discord integration guide
-    ├── skill-tracking-spec.md      # [v2.0] Skill usage tracking spec
-    └── mobile-first-spec.md        # [v2.0] Mobile-first UX spec
+├── CONTRIBUTING.md                 # [v2.3] Contribution guide
+├── CHANGELOG.md                    # [v2.3] Version history
+├── .markdownlint.json              # [v2.3] Lint config
+├── .github/workflows/quality.yml   # [v2.3] CI/CD
+├── deploy/
+│   └── lightsail-claude.md         # [v2.2] Lightsail CLAUDE.md
+├── examples/
+│   └── mode-1-walkthrough.md       # [v2.3] Mode 1 E2E walkthrough
+└── references/                     # 26 files (specs + data, on-demand load)
+    ├── idea-expansion-spec.md      # [v2.3] Mode 1 Phases A-G
+    ├── newspaper-spec.md           # Mode 2
+    ├── casual-chat-spec.md         # Mode 3
+    ├── memory-spec.md              # Mode 4
+    ├── companion-spec.md           # Mode 5 + S3 sync loop
+    ├── google-brief-spec.md        # [v2.2] Mode 6
+    ├── pm-tools-bridge-spec.md     # [v2.2] Mode 7
+    ├── discord-ux-spec.md          # [v2.1] Discord UX
+    ├── response-speed-spec.md      # [v2.1] Speed optimization (7 techniques)
+    ├── self-healing-spec.md        # Self-healing + JSONL recovery
+    ├── scenario-tests.md           # [v2.3] 47 scenario tests
+    └── ...                         # 15 more spec/data files
 ```
 
 ## License & Credits

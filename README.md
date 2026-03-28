@@ -97,13 +97,22 @@ cd ~/.claude/skills && git clone <repo-url> bochi
 ```
 ~/.claude/bochi-data/
 ├── index.jsonl              # Master search index (JSONL append)
-├── user-profile.yaml        # Interests, settings
+├── user-profile.yaml        # Interests, category weights, settings
+├── seen.jsonl               # Seen article URL tracking (dedup)
 ├── topics/                  # Researched topics (1 file each)
-├── memos/                   # Cross-context memos
+├── memos/                   # Cross-context memos (Discord/CLI)
 ├── newspaper/               # Newspaper archive
 ├── reflections/             # PDCA daily reflections
 ├── stats/usage.jsonl        # Skill usage stats
 ├── sources/verified.jsonl   # Verified source quality DB
+├── cache/                   # Performance cache layer
+│   ├── newspaper-draft.md   # Pre-generated newspaper (06:00 JST cron)
+│   ├── trending/*.jsonl     # Category-specific trending article pool
+│   ├── meta.json            # Cache TTL management
+│   ├── calendar.md          # Google Calendar cache (S3 sync)
+│   └── gmail.md             # Gmail top 10 cache (S3 sync)
+├── errors/                  # Error logs + diagnosis reports
+│   └── known-patterns.jsonl # Known error pattern DB (auto-accumulate)
 └── archive/                 # Archived old data (never deleted)
 ```
 
@@ -126,6 +135,49 @@ cd ~/.claude/skills && git clone <repo-url> bochi
 | First-Principles Thinking | Phase D | Jensen Huang / NVIDIA |
 | Opportunity Solution Tree | Phase E | Teresa Torres |
 | Mom Test / JTBD | Phase F (handoff) | Rob Fitzpatrick / Clayton Christensen |
+
+## アーキテクチャ
+
+### Owner-Only Learning Protocol
+
+```
+Message received → Owner (paired user)? → full interaction + learn + memorize
+                → Other user?           → respond with read-only knowledge
+```
+
+CLI: 全セッションがOwner。Discord: access.jsonのpaired user_idで判定。
+
+### Discord UX
+
+- **React即時応答** (HARD-GATE): メッセージ受信→他の処理の前にリアクション
+- **セクション分割**: 各メッセージ300文字以内。DMにスレッドがないため引用返信チェーン
+- **Progressive Disclosure**: react → "考えてるゆ" → edit_message → 新reply（push通知）
+- **リアクションステータス**: received → searching → found → processing → done（カテゴリ別ランダム選択）
+- 詳細: `references/discord-ux-spec.md`, `references/response-speed-spec.md`
+
+### Self-Healing & Error Reporting
+
+- セッション開始時にerrors/*.jsonlを調査、既知パターンは自動修復
+- Discord応答失敗時は必ずユーザーにエラー報告（沈黙禁止）
+- JSONL破損時の自動回復スクリプト（最大5行ロールバック）
+- 詳細: `references/self-healing-spec.md`, `references/error-reporting-spec.md`
+
+### RemoteTrigger Cron
+
+| Trigger | Schedule | Purpose |
+|---------|----------|---------|
+| `bochi-prefetch` | 06:00 JST | Newspaper cache pre-generation |
+| `bochi-daily` | 08:00 JST | Morning newspaper delivery + PDCA |
+
+### 外部依存
+
+| 依存 | 必須/任意 | 用途 |
+|------|----------|------|
+| Discord MCP Plugin | 任意 | Discord DM連携 |
+| Context7 MCP | 任意 | 技術系リサーチでライブラリドキュメント参照 |
+| gog CLI | 任意 | Google Calendar/Gmail同期（Mac側のみ） |
+| github_project_manager skill | 任意 | Mode 7 PM Tools のGitHub操作委譲先 |
+| Figma MCP | 任意 | FigJam図生成（Mode 1 Phase E） |
 
 ## 使わない方がいいユースケース
 
@@ -166,7 +218,7 @@ bochi/
 │   └── lightsail-claude.md         # [v2.2] Lightsail CLAUDE.md
 ├── examples/
 │   └── mode-1-walkthrough.md       # [v2.3] Mode 1 E2Eウォークスルー
-└── references/                     # 28 spec files (on-demand load)
+└── references/                     # 26 files (specs + data, on-demand load)
     ├── idea-expansion-spec.md      # [v2.3] Mode 1 Phases A-G
     ├── newspaper-spec.md           # Mode 2
     ├── casual-chat-spec.md         # Mode 3
