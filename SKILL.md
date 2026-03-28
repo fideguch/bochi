@@ -93,8 +93,15 @@ S3 sync は読み書き分離: Lightsail が書き込み → S3 push、Mac が S
 ### index.jsonl Entry Format
 
 ```jsonl
-{"id":"topic-YYYYMMDD-NNN","type":"topic|memo|newspaper","title":"...","date":"YYYY-MM-DD","category":"PM|AI|Tech|Biz|Ad|UI-UX|General","tags":[],"freshness":"active|warm|archive","related":[],"channel":"cli|discord","path":"topics/YYYY-MM-DD-slug.md"}
+{"id":"topic-YYYYMMDD-NNN","type":"topic|memo|newspaper","title":"...","date":"YYYY-MM-DD","summary":"1-2文の自然言語要約。grepで検索可能","category":"PM|AI|Tech|Biz|Ad|UI-UX|General","tags":["日本語タグ"],"freshness":"active|warm|archive","related":[],"channel":"cli|discord","path":"topics/YYYY-MM-DD-slug.md"}
 ```
+
+### Tag Language Rule
+
+tagsはユーザーの思考単位で日本語を使う。実装用語（aws, discord, infrastructure等）は禁止。
+例: `["広告運用","事業機会","AI活用"]` ✅  `["aws","infrastructure","deploy"]` ❌
+
+summaryは1-2文の自然言語要約。Mode 4（記憶検索）でgrepマッチに使われる。
 
 ### seen.jsonl Entry Format
 
@@ -152,6 +159,7 @@ Discord経由の場合、`references/discord-ux-spec.md` + `references/response-
 1. React即時（HARD-GATE — response-speed-spec.md §1）
 2. セクション分割300文字（discord-ux-spec.md §セクション分割）
 3. 結論ファースト（response-speed-spec.md §7）
+4. ファイル添付: メモ/新聞保存時はreplyのfilesパラメータでmd添付（discord-ux-spec.md参照）
 
 ## Feedback Signal
 

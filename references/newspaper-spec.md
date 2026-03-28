@@ -104,7 +104,7 @@ Save to `~/.claude/bochi-data/newspaper/YYYY-MM-DD.md`:
 ## Index Entry
 
 ```bash
-echo '{"id":"news-YYYYMMDD","type":"newspaper","title":"Daily Brief YYYY-MM-DD","date":"YYYY-MM-DD","category":"newspaper","tags":[],"freshness":"active","channel":"cli","path":"newspaper/YYYY-MM-DD.md"}' >> ~/.claude/bochi-data/index.jsonl
+echo '{"id":"news-YYYYMMDD","type":"newspaper","title":"YYYY-MM-DD の朝刊","date":"YYYY-MM-DD","summary":"PM・AI・テック等のデイリーブリーフN件","category":"newspaper","tags":["朝刊"],"freshness":"active","channel":"discord","path":"newspaper/YYYY-MM-DD.md"}' >> ~/.claude/bochi-data/index.jsonl
 ```
 
 ## Data Persistence (HARD-GATE)
@@ -119,6 +119,15 @@ echo '{"id":"news-YYYYMMDD","type":"newspaper","title":"Daily Brief YYYY-MM-DD",
 
 実行確認: 3操作すべて完了後に最終replyを送信する。
 </HARD-GATE>
+
+## Discord File Attachment
+
+新聞ファイルをDiscord DMに添付する:
+
+1. newspaper/YYYY-MM-DD.md 保存完了後
+2. reply の files パラメータで添付: `files: ["$HOME/.claude/bochi-data/newspaper/YYYY-MM-DD.md"]`
+3. reply テキストは会話口調（ファイル内容の繰り返し不要）
+4. ファイル内にBot発言（語尾ゆ等）を含めない — プロフェッショナルモード
 
 ## Deep Dive Transition
 

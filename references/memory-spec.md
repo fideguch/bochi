@@ -15,25 +15,26 @@
 Trigger: 「〇〇について覚えてる？」「前に話した〇〇」
 
 ```
-[1] grep index.jsonl for keyword
-[2] Filter by freshness (Active first, then Warm)
-[3] Read matching topic/memo files
-[4] Present summary with dates and E-E-A-T scores
+[1] Read user query (natural language)
+[2] grep index.jsonl for matches in: title, summary, tags
+[3] Present top 3-5 matches with title + summary + date
+[4] User selects → send file as Discord attachment
 ```
 
 Output:
 ```
-〇〇について覚えてるゆ！
+あったゆ 💫
 
-## Active (最近の記憶) 💫
-1. **{title}** ({date}) — {1行要約}
-   Tags: {tags} | Category: {category}
-2. ...
+1. **{title}** — {summary} ({date})
+2. **{title}** — {summary} ({date})
+3. ...
 
-## Warm (少し前の記憶) 🌙
-1. ...
+見たいのあるゆ？ファイル送るゆ 📎
+```
 
-見たいのあったら番号教えてゆ！
+When user selects:
+```
+reply(text="これゆ ✨", files=["$HOME/.claude/bochi-data/{path}"])
 ```
 
 ### 4b: Review (一覧)
