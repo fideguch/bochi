@@ -71,6 +71,8 @@ No commands needed. No formatting required.
 - Casual chat item: max 80 chars
 - Memo confirmation: max 100 chars
 
+1項目あたりの推奨文字数。セクション全体の上限はdiscord-ux-spec.md（300文字/セクション）に準拠。
+
 ### Visual Hierarchy
 - Use bold for titles, not headers (headers take too much mobile space)
 - Emoji as visual anchors (category markers)

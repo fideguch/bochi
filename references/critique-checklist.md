@@ -6,10 +6,10 @@ All checks must pass before proceeding to Phase E.
 - [ ] All sources have E-E-A-T score >= 28/40
 - [ ] Failed sources excluded and replacement search executed
 
-## 2. First-Principles Check (Jensen Huang Method)
-- [ ] Root assumptions of the idea are explicitly stated
-- [ ] Assumptions are valid as of 2026
-- [ ] Can answer: "Would I take the same approach starting from zero today?"
+## 2. Alternative Approach Verification
+- [ ] List 3 alternative approaches to the current recommendation
+- [ ] State 1-line pros/cons for each alternative
+- [ ] Confirm current approach is still the strongest; if not, return to Phase C
 
 ## 3. Information Freshness
 - [ ] Primary sources published within 1 year

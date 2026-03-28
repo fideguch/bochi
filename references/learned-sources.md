@@ -1,10 +1,23 @@
 # bochi Learned Sources
 
 ## Format
-YYYY-MM-DD | Domain | URL | E-E-A-T Score | User Rating
+YYYY-MM-DD | Domain | URL | E-E-A-T Score | User Rating (1-5)
+
+## How to Append
+After Phase G positive feedback, update both:
+1. This reference file (human-readable log):
+```
+YYYY-MM-DD | domain.com | https://... | 32/40 | 4
+```
+2. Runtime data (JSONL for programmatic access):
+```bash
+echo '{"url":"...","domain":"...","eeat_score":32,"date":"...","rating":4}' >> ~/.claude/bochi-data/sources/verified.jsonl
+```
 
 ## Verified High-Quality Sources
-<!-- Auto-append area — sources confirmed by positive user feedback -->
+2026-03-28 | note.com | (initial seed) | 30/40 | 4
+2026-03-28 | lenny.substack.com | (initial seed) | 35/40 | 5
+2026-03-28 | reforge.com | (initial seed) | 33/40 | 4
 
 ## Blacklisted Sources (low quality)
-<!-- Auto-append area — sources flagged as unreliable -->
+(none yet)

@@ -3,28 +3,28 @@
 ## 4-Axis Scoring (10 points each, 40 total)
 
 ### 1. Experience (実務経験に基づく知見か)
-- 10: GAFA/NVIDIA current engineer/PM/designer firsthand experience
-- 7-9: Major tech company practitioner insights
-- 4-6: General blog/media articles
-- 1-3: Anonymous/unverified source
+- 8-10: 学術論文著者、当該領域10年超の実務家、GAFA/NVIDIA現役の一次情報
+- 5-7: 検証可能な専門性を持つブログ・メディア（著者プロフィール確認可能）
+- 2-4: 一般ブログ・SEO記事（著者不明 or 専門性未検証）
+- 0-1: AI生成コンテンツ、匿名投稿、内容に明らかな誤り
 
 ### 2. Expertise (専門家による深い分析か)
-- 10: Academic paper / official tech doc / conference presentation
-- 7-9: Expert blog with verified authorship
-- 4-6: General media summary article
-- 1-3: AI-generated content / low-quality SEO article
+- 8-10: 学術論文 / 公式ドキュメント / カンファレンス登壇資料
+- 5-7: 著者が確認可能な専門家ブログ
+- 2-4: 一般メディアの要約記事
+- 0-1: AI生成コンテンツ / 低品質SEO記事
 
 ### 3. Authoritativeness (信頼される発信元か)
-- 10: Official docs / academic institution / GAFA Engineering Blog
-- 7-9: Industry leader blog (a16z, Lenny's Newsletter, Reforge, etc.)
-- 4-6: Mid-tier media / personal tech blog
-- 1-3: Unknown domain
+- 8-10: 公式ドキュメント / 学術機関 / GAFA Engineering Blog
+- 5-7: 業界リーダーブログ (a16z, Lenny's Newsletter, Reforge等)
+- 2-4: 中堅メディア / 個人テックブログ
+- 0-1: 不明ドメイン
 
 ### 4. Trustworthiness (情報が検証可能か)
-- 10: Primary data / source code / reproducible experiment
-- 7-9: Analysis with clear citations
-- 4-6: Citations exist but secondary information
-- 1-3: No citations / opinion only
+- 8-10: 一次データ / ソースコード / 再現可能な実験
+- 5-7: 明確な引用付き分析
+- 2-4: 引用はあるが二次情報
+- 0-1: 引用なし / 意見のみ
 
 ## Pass Criteria
 - High-quality source: **28/40+ (70%)**

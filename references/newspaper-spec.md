@@ -113,3 +113,8 @@ When user says "深掘りして" about a specific article:
 1. Extract URL and topic from the article
 2. Transition to Mode 1 (Phase A) with the article as input
 3. Tag the resulting topic with `source: newspaper`
+
+## Edge Cases
+- 全候補がseen.jsonlでフィルタ → 追加WebSearch（最大3回、クエリ変更しながら）
+- cache/trending/が空 → 即WebSearchにフォールバック、Progressive Disclosureで待ち表示
+- カテゴリweight全て0 → user-profile.yamlのデフォルト値（0.3）で全カテゴリ均等検索

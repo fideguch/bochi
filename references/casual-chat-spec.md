@@ -82,3 +82,8 @@ When user shows interest in an item:
 1. Extract the topic/URL
 2. Start Mode 1 Phase A with that context
 3. Tag resulting topic with `source: casual-chat`
+
+## Edge Cases
+- index.jsonlが空 or 読み取りエラー → 「まだデータがないゆ。最初のトピックを作るゆ？💫」
+- 全関連トピックがarchive → 「最近の話題がないゆ。何か面白いこと調べるゆ？✨」
+- ユーザーが1文字だけ入力 → bochiキャラで自然に返す（Mode強制しない）
