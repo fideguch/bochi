@@ -62,6 +62,8 @@ All persistent data lives in `~/.claude/bochi-data/`:
 | `reflections/` | PDCA daily reflections | Write tool |
 | `stats/usage.jsonl` | Skill usage stats | Bash `echo >>` |
 | `sources/verified.jsonl` | Verified source DB | Bash `echo >>` |
+| `errors/` | Error logs + diagnosis reports | Bash `echo >>` / Write |
+| `errors/known-patterns.jsonl` | Known error patterns DB | Bash `echo >>` |
 | `archive/` | Archived old data | Write tool (move) |
 
 ### index.jsonl Entry Format
@@ -298,6 +300,12 @@ echo '{"url":"...","domain":"...","eeat_score":32,"date":"...","topic_id":"..."}
 3. **「/requirements_designer で要件定義に進むゆ？」** — 本格要件定義へ
 4. **「もっと深掘りするゆ？」** — bochi継続
 5. **「新聞に追加するゆ？」** — user-profileのinterestsに反映
+6. **「/pm-figjam-diagrams でFigJamに図化するゆ？」** — OST・仮説・フローをFigJam図に変換
+
+### pm-figjam-diagrams Handoff
+
+ユーザーが選択肢6を選んだ場合、自動引き継ぎ。
+topics/最新ファイルのパスを `/pm-figjam-diagrams` に渡し、bochi連携モード（Pattern B）で起動。
 
 ### pm-discovery-interview-prep Handoff
 
@@ -367,6 +375,8 @@ Discord: check sender_id against paired user.
 | `discord-setup.md` | Discord setup |
 | `skill-tracking-spec.md` | Skill tracking |
 | `mobile-first-spec.md` | Mobile optimization |
+| `error-reporting-spec.md` | Error handling/reporting |
+| `self-healing-spec.md` | Session start health check |
 
 **Do NOT pre-load all references at skill invocation.**
 Load only the references needed for the current mode/phase.
