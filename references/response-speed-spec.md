@@ -112,3 +112,10 @@ Mode検出直後に、後続フェーズで必要なreferenceを並列Readする
 結論: 「今日のハイライトゆ 💫 {最も重要な1記事の要約}」
 詳細: カテゴリ別記事一覧（セクション分割で後続）
 ```
+
+## Edge Cases
+
+- **Parallel WebSearch全件0結果** → クエリを広げてリトライ（最大2回/クエリ）
+- **Cache stale + network unavailable** → stale cacheを「キャッシュ情報ゆ（最新ではないかもゆ）」警告付きで配信
+- **Progressive Disclosure edit_message fails** → editスキップ、最終結果を単一新replyで送信
+- **React成功→reply失敗** → リアクションは残る。ユーザーは受信確認は見えるが返答なし。error-reporting-specのエラーログに記録（category: mcp_failure）

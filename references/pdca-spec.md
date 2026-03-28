@@ -70,3 +70,10 @@ On Mondays, also check:
 - Active items >90 days without reference -> demote to Warm
 - Warm items >180 days -> propose Archive to user
 - Log demotions in reflection file
+
+## Edge Cases
+
+- **First run (no yesterday data)** → Check phaseスキップ、Plan-only reflectionを生成
+- **user-profile.yaml missing** → デフォルト値（全カテゴリweight 0.3）で自動作成
+- **Weight adjustment exceeds max 1.0** → 1.0でキャップ、ログに上限到達を記録
+- **Zero engagement data for the week** → reflectionに記載、weight未調整、コンテンツ多様化を提案

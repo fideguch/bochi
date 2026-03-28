@@ -67,6 +67,13 @@ Discord Message Received
 {"ts":"ISO8601","category":"mcp_failure|rate_limit|auth_error|timeout|unknown","message":"error message","discord_msg_id":"...","user":"...","input_preview":"first 100 chars...","resolved":false}
 ```
 
+## Edge Cases
+
+- **Discord reply tool itself fails** → ログのみ記録（Implementation Notes §3準拠）
+- **Error log file write fails** → /tmp にフォールバック書き込み、次セッションで報告
+- **Rapid error storm (5+ errors in 60s)** → 単一レポートにバッチ化、Discord DM洪水を防止
+- **Error category ambiguous** → "unknown" にデフォルト、フルスタックをログに記録
+
 ## Implementation Notes
 
 - Error reporting は bochi SKILL.md の Default Handler に組み込む

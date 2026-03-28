@@ -2,6 +2,21 @@
 
 All notable changes to bochi are documented here.
 
+## v2.4 (2026-03-28) — Edge Case Completeness + DRY
+
+### Added
+
+- Edge Cases sections for all 14 spec files (9 new: companion, discord-ux, error-reporting, memory, mobile-first, pdca, response-speed, self-healing, skill-tracking)
+- Session Continuity Protocol in lightsail-claude.md (6h restart recovery with fetch_messages, profile preload, open memo surfacing)
+- EC-01/EC-02 edge case scenario tests (archive dir missing, orphaned index entry)
+
+### Changed
+
+- SKILL.md: Removed duplicate "Mode 2-7: Spec References" table (DRY, ~329 to ~313 lines)
+- RS-03 scenario test: "Conclusion first" differentiated to "Progressive timing"
+- CI threshold: 47 → 49 tests
+- Scenario test suite: 47 → 49 tests
+
 ## v2.3 (2026-03-28) — Thinking Hub + Quality
 
 ### Added

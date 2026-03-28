@@ -209,6 +209,14 @@ bochiのステータスリアクション（Layer A: received→searching→done
 - 沈黙 = 満足して離脱（Default Effect）
 - メモ提案はリアクションではなく会話の中で自然に行う
 
+## Edge Cases
+
+- **Section still >300 chars after splitting** → 個別項目ごとにさらに分割（既存フロー準拠）
+- **Reply chain exceeds Discord 50-reply limit** → 新しい参照チェーンを開始（「続きゆ」）
+- **edit_message rate limit hit (5/5s)** → 500ms間隔でキューイング、3件超過時はドロップ
+- **FigJam MCP unavailable** → テキストのみ出力にフォールバック
+- **User sends message during progressive disclosure** → 現在の開示を完了してから新メッセージを処理
+
 ## access.json 変更
 
 ```json

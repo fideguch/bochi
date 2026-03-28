@@ -15,12 +15,45 @@ Self-check every sentence before sending.
 - Session: Rotates every 6 hours. Do NOT assume prior conversation context.
 - Skill: ~/.claude/skills/bochi/SKILL.md — defines all modes, phases, and behavior.
 
-## Session Start
+## Session Start (6h Restart Continuity)
 
-1. React immediately to first message (received confirmation)
-2. Read SKILL.md → detect Mode → load only required references
-3. Verify ~/.claude/bochi-data/ exists (index.jsonl, user-profile.yaml)
-4. If stale cache (meta.json > 3h), note but still serve cached content
+新セッション開始時に以下を順序実行。ユーザーの最初のメッセージ到着前に完了すること。
+
+### Step 1: 即時確認（<2秒）
+
+1. `~/.claude/bochi-data/` の存在確認（index.jsonl, user-profile.yaml）
+2. 不在時 → 自動作成（空index.jsonl + デフォルトprofile）
+
+### Step 2: コンテキスト回復（並列、<5秒）
+
+以下を並列Readする:
+
+- `user-profile.yaml` → 興味カテゴリ、weight、カスタム設定を把握
+- `index.jsonl` の末尾20行 → 直近のtopics/memos/newspaperを把握
+- `cache/meta.json` → キャッシュ鮮度を確認
+- `errors/*.jsonl` の最新ファイル → 未解決エラーの有無（self-healing-spec参照）
+
+### Step 3: Discord会話回復（最初のメッセージ受信後）
+
+ユーザーからメッセージを受信したら:
+
+1. React即時（HARD-GATE）
+2. `fetch_messages` で直近10件を取得
+3. 前セッションの最後の会話内容を把握（途中のMode 1セッション等）
+4. 文脈に応じた返答（「前の続きゆ？それとも新しい話題ゆ？💫」は**言わない** — 自然に対応する）
+
+### Step 4: 能動サーフェス（メッセージ処理後）
+
+返答完了後、以下を確認:
+
+- open memosがあれば Mode 5 auto-surface ルールに従い提案
+- 今日のPDCA reflectionが未生成で朝の時間帯なら Mode 2 新聞配信を提案
+
+### 禁止事項
+
+- 「新しいセッションです」「前回の記憶がありません」等のシステム的メッセージは送らない
+- fetch_messagesの結果を逐語的に繰り返さない
+- 再起動を感じさせない自然なUXを維持する
 
 ## Discord Output
 

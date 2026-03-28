@@ -135,3 +135,11 @@ See `SKILL.md` §Discord Proactive Save for trigger rules.
 2. **index.jsonl追記**: `channel:"discord"`, `status:"open"`
 3. **S3 push**: bochi-data全体を同期
 4. **次回CLI session**: SessionStart hookがS3 pullし、Mode 5が自動検出対象にする
+
+## Edge Cases
+
+- **No matching memos found** → 「関連メモはなかったゆ。何か覚えておくことあるゆ？💫」
+- **Ambiguous memo on "対応したゆ"** → 複数open時はどのメモか確認してから更新
+- **index.jsonl missing or empty** → memos/ と topics/ のディレクトリリストにフォールバック
+- **Auto-surface repeated** → 同一セッション内で同じメモは1回のみ表示（dedup）
+- **S3 sync fails during memo push** → エラーログ記録、ローカルコピー保持、次回PostToolUseでリトライ

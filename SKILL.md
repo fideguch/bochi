@@ -11,7 +11,7 @@ description: |
   or when brainstorming skill is already active for design work.
 ---
 
-# bochi v2.3 — PM Companion
+# bochi v2.4 — PM Companion
 
 アイデアの種を構造化仮説に変換し、日々のPM活動を支えるコンパニオンゆ。
 
@@ -260,22 +260,6 @@ Phase A-G の全フローは上記specに定義。Edge Cases含む。
 
 ---
 
-## Mode 2-7: Spec References
-
-Each mode loads its spec on demand:
-
-| Mode | Spec File | Load When |
-|------|-----------|-----------|
-| 2 新聞 | `references/newspaper-spec.md` | Mode 2 trigger |
-| 3 雑談 | `references/casual-chat-spec.md` | Mode 3 trigger |
-| 4 記憶 | `references/memory-spec.md` | Mode 4 trigger |
-| 5 コンパニオン | `references/companion-spec.md` | Mode 5 trigger |
-| 6 Google Brief | `references/google-brief-spec.md` | Mode 6 trigger |
-| 7 PM Tools | `references/pm-tools-bridge-spec.md` | Mode 7 trigger |
-| PDCA | `references/pdca-spec.md` | Before newspaper (auto) |
-
----
-
 ## Owner-Only Learning Protocol
 
 ```
@@ -321,7 +305,7 @@ Discord: check sender_id against paired user.
 | `response-speed-spec.md` | 7技術のレスポンス速度改善 |
 | `google-brief-spec.md` | Mode 6 |
 | `pm-tools-bridge-spec.md` | Mode 7 |
-| `scenario-tests.md` | Manual test suite (47+ scenarios) |
+| `scenario-tests.md` | Manual test suite (49+ scenarios) |
 
 **Do NOT pre-load all references at skill invocation.**
 Load only the references needed for the current mode/phase.

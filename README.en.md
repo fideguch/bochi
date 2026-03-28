@@ -1,4 +1,4 @@
-# bochi v2.3 — PM Companion
+# bochi v2.4 — PM Companion
 
 A Claude Code skill that transforms idea seeds (memos, URLs, sparks) into structured hypotheses and supports daily PM activities as a thinking companion.
 
@@ -10,15 +10,32 @@ bochi is a "thinking hub accessible from anywhere" for PMs.
 2. **S3 Data Hub**: bochi-data → S3 → all environments synced. Data is always current
 3. **Proactive Memo Save**: bochi proposes saving valuable conversations without waiting for "save this"
 
-## What's New in v2.3
+## What's New in v2.4
 
-- **Thinking Hub**: Ideas born in Discord DM auto-propagate to Mac CLI via S3
-- **Mode 1 Spec Extraction**: Phases A-G moved to `references/idea-expansion-spec.md` (DRY)
-- **Proactive Memo Save**: 4 trigger conditions added to Intake Gate
-- **Edge Cases**: Added to socratic-levels, expansion-framework, output-template, self-healing
-- **CI/CD**: markdownlint + reference integrity + test count verification
-- **DX Files**: CONTRIBUTING.md, CHANGELOG.md, examples/mode-1-walkthrough.md
-- **47 Scenario Tests**: 7 new Mode 4/5 tests (all 7 modes covered)
+- **Edge Cases Complete**: All 14 spec files now have Edge Cases sections (v2.3: 5/14 → 14/14)
+- **SKILL.md DRY Complete**: Mode 2-7 duplicate table removed (329 → 313 lines)
+- **Session Continuity Protocol**: 6h restart recovery with fetch_messages, profile preload, open memo surfacing
+- **49 Scenario Tests**: 2 Edge Case tests added + RS-03 differentiated (47 → 49)
+
+<details>
+<summary>v2.0-v2.3 changes</summary>
+
+### v2.3 — Thinking Hub + Quality
+
+- Mode 1 spec extraction, proactive memo save, CI/CD, DX files, 47 tests
+
+### v2.2 — Lightsail + Mode 6/7
+
+- deploy/lightsail-claude.md, Mode 6 Google Brief, Mode 7 PM Tools, 40 tests
+
+### v2.1 — Speed + Signals
+
+- response-speed-spec (7 techniques), discord-ux-spec, seen-tracking cache
+
+### v2.0 — Initial Release
+
+- 5-Mode Router, Context Signal Triggers, Persistent Data Layer, Discord Integration
+</details>
 
 ## Key Strengths
 
@@ -135,14 +152,14 @@ Input (memo or URL)
 
 > Based on GAFA Rubric v2 (5 dimensions x 20 points = 100 max).
 
-| Dimension | v2.2 | v2.3 | Notes |
+| Dimension | v2.3 | v2.4 | Notes |
 |-----------|------|------|-------|
-| Maintainability | 15 | 16 | Mode 1 extraction + DRY. References table duplication remains |
-| Reliability | 15 | 15 | Major mode Edge Cases added. Full spec coverage pending |
-| Testing & CI | 10 | 14 | CI added + 47 tests. Mode 4/5 tests thin |
-| DX | 16 | 17 | CONTRIBUTING + CHANGELOG + examples all present |
-| Product | 16 | 16 | Vision added. S3 scripts not yet implemented |
-| **Total** | **72** | **78** | **Grade C+ → targeting B+(87)** |
+| Maintainability | 16 | 17 | SKILL.md 313 lines. Mode 2-7 duplicate table removed |
+| Reliability | 15 | 17 | Edge Cases 14/14 specs complete. All fallbacks explicit |
+| Testing & CI | 14 | 15 | 49 tests. Edge Case tests added. RS-03 differentiated |
+| DX | 17 | 18 | Quick Start improved. Session Continuity Protocol added |
+| Product | 16 | 17 | S3 scripts verified present. Vision + proactive save + S3 loop documented |
+| **Total** | **78** | **84** | **Grade B — practical ceiling without structural changes** |
 
 ## Architecture
 
@@ -170,7 +187,7 @@ Owner (paired user) gets full interaction + learn + memorize. Others get read-on
 
 ```
 bochi/
-├── SKILL.md                        # Main skill (329 lines, 7-mode router)
+├── SKILL.md                        # Main skill (313 lines, 7-mode router)
 ├── README.md                       # Japanese documentation
 ├── README.en.md                    # This file
 ├── CONTRIBUTING.md                 # [v2.3] Contribution guide
@@ -192,7 +209,7 @@ bochi/
     ├── discord-ux-spec.md          # [v2.1] Discord UX
     ├── response-speed-spec.md      # [v2.1] Speed optimization (7 techniques)
     ├── self-healing-spec.md        # Self-healing + JSONL recovery
-    ├── scenario-tests.md           # [v2.3] 47 scenario tests
+    ├── scenario-tests.md           # [v2.4] 49 scenario tests
     └── ...                         # 15 more spec/data files
 ```
 

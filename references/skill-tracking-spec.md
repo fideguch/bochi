@@ -71,3 +71,10 @@ Based on usage patterns:
 - "requirements_designerの後はいつもspeckit-bridge使ってるゆ。自動で繋ぐゆ？"
 
 Trigger: Mode 3 (casual chat) or Mode 2 (newspaper) footer.
+
+## Edge Cases
+
+- **usage.jsonl missing** → 初回スキル呼び出し時に自動作成
+- **gh CLI not authenticated** → リポスキャンをスキップ、ローカル ~/.claude/skills/ のみ使用
+- **Fuzzy match returns multiple equal-score candidates** → 上位3件を提示、ユーザーに選択を依頼
+- **Custom skill SKILL.md malformed** → スキャンからスキップ、警告をログ

@@ -1,4 +1,4 @@
-# Scenario Test Suite — bochi Manual QA (47 tests)
+# Scenario Test Suite — bochi Manual QA (49 tests)
 
 > Execute each test via Discord DM. Pass/Fail is binary.
 
@@ -82,7 +82,7 @@
 |----|----------|-------|--------------------|---------------|
 | RS-01 | React latency | Any input | Emoji reaction within 2 seconds | Stopwatch confirms reaction ≤ 2s from send |
 | RS-02 | Parallel search | `AIエージェントの最新動向を調べて` | Multiple WebSearch queries fire concurrently | 3 searches visible in logs or response time < sequential estimate |
-| RS-03 | Conclusion first | `来週のマーケティング戦略を考えて` | Conclusion delivered before supporting details | First message contains recommendation; details follow |
+| RS-03 | Progressive timing | `来週のマーケティング戦略を考えて` | First substantive message arrives within 10s via Progressive Disclosure | Stopwatch: placeholder or conclusion within 10s of send |
 
 ## Error Handling (3 tests)
 
@@ -98,6 +98,13 @@
 |----|----------|-------|--------------------|---------------|
 | CH-01 | 語尾ゆ consistency | Send 3 varied messages, collect 10+ sentences total | Every sentence ends with ゆ | 10/10 sentences end with ゆ |
 | CH-02 | Banned emoji | Review all reactions and text across 5+ messages | No banned emoji (👋🙂😊❤️👍😄) | Zero instances of banned emoji found |
+
+## Edge Case Coverage (2 tests)
+
+| ID | Category | Input | Expected Behavior | Pass Criteria |
+|----|----------|-------|--------------------|---------------|
+| EC-01 | Archive dir missing | `記憶整理` (with archive/ deleted) | bochi auto-creates archive/ and proceeds | No error; archive/ exists after operation |
+| EC-02 | Orphaned index entry | Add fake entry to index.jsonl pointing to nonexistent file | Reports "ファイルが見つからないゆ" | No crash; user-friendly message; orphan logged |
 
 ## CLAUDE.md Verification (5 tests)
 

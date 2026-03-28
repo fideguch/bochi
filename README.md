@@ -1,4 +1,4 @@
-# bochi v2.3 — PM Companion
+# bochi v2.4 — PM Companion
 
 アイデアの種（メモ・URL・ひらめき）を「構造化された仮説」に変換し、日々のPM活動を支えるコンパニオン Claude Code スキル。
 
@@ -10,18 +10,19 @@ bochiは「PMの思考をどこからでもアクセスできるハブ」。
 2. **S3データハブ**: bochi-data → S3 → 全環境同期。データは常に最新
 3. **能動的メモ保存**: 価値ある会話はbochiが保存を提案する。ユーザーの「メモして」を待たない
 
-## What's New in v2.3
+## What's New in v2.4
 
-- **Thinking Hub**: Discord DMで生まれたアイデアがS3経由でMac CLIに自動伝播
-- **Mode 1 Spec分離**: Phase A-G を `references/idea-expansion-spec.md` に抽出（DRY改善）
-- **能動的メモ保存**: Intake Gateに4つのトリガー条件を追加
-- **Edge Cases強化**: socratic-levels, expansion-framework, output-template, self-healing に追加
-- **CI/CD**: markdownlint + 参照整合性チェック + テスト数検証
-- **DXファイル**: CONTRIBUTING.md, CHANGELOG.md, examples/mode-1-walkthrough.md
-- **47シナリオテスト**: Mode 4/5 の7件追加（全7モードカバー）
+- **Edge Cases全spec完備**: 全14 specファイルにEdge Casesセクション追加（v2.3の5/14→14/14）
+- **SKILL.md DRY完成**: Mode 2-7重複テーブル削除（329→313行）
+- **Session Continuity Protocol**: 6h再起動後のコンテキスト回復手順（fetch_messages, profile先行読み, open memo surfacing）
+- **49シナリオテスト**: Edge Caseテスト2件追加 + RS-03差別化（47→49）
 
 <details>
-<summary>v2.0-v2.2 の変更</summary>
+<summary>v2.0-v2.3 の変更</summary>
+
+### v2.3 — Thinking Hub + Quality
+
+- Mode 1 Spec分離, 能動的メモ保存, CI/CD, DXファイル, 47テスト
 
 ### v2.2 — Lightsail + Mode 6/7
 
@@ -194,20 +195,20 @@ CLI: 全セッションがOwner。Discord: access.jsonのpaired user_idで判定
 
 > 以下はGAFA Rubric v2（5次元×20点=100点満点）に基づく自己評価。
 
-| 次元 | v2.2 | v2.3 | 判定根拠 |
+| 次元 | v2.3 | v2.4 | 判定根拠 |
 |------|------|------|---------|
-| Maintainability | 15 | 16 | Mode 1分離+DRY改善。References表重複が残存 |
-| Reliability | 15 | 15 | 主要モードEdge Cases追加。全specカバーは未達 |
-| Testing & CI | 10 | 14 | CI追加+47テスト。Mode 4/5テスト薄い |
-| DX | 16 | 17 | CONTRIBUTING+CHANGELOG+examples全追加 |
-| Product | 16 | 16 | Vision追加。S3スクリプト未実装で相殺 |
-| **Total** | **72** | **78** | **Grade C+ → 目標B+(87)に向けて継続改善** |
+| Maintainability | 16 | 17 | SKILL.md 313行。Mode 2-7重複表削除完了 |
+| Reliability | 15 | 17 | Edge Cases 14/14 spec完備。全フォールバック明示 |
+| Testing & CI | 14 | 15 | 49テスト。Edge Caseテスト追加。RS-03差別化 |
+| DX | 17 | 18 | Quick Start改善。Session Continuity Protocol追加 |
+| Product | 16 | 17 | S3スクリプト存在確認済み。Vision+能動保存+S3ループ文書化 |
+| **Total** | **78** | **84** | **Grade B — 構造的変更なしでの実質上限** |
 
 ## フォルダ構成
 
 ```
 bochi/
-├── SKILL.md                        # Main skill (329 lines, 7-mode router)
+├── SKILL.md                        # Main skill (313 lines, 7-mode router)
 ├── README.md                       # 本ファイル
 ├── README.en.md                    # English version
 ├── CONTRIBUTING.md                 # [v2.3] 貢献ガイド
@@ -229,7 +230,7 @@ bochi/
     ├── discord-ux-spec.md          # [v2.1] Discord UX
     ├── response-speed-spec.md      # [v2.1] 速度改善7技術
     ├── self-healing-spec.md        # 自己修復 + JSONL回復
-    ├── scenario-tests.md           # [v2.3] 47シナリオテスト
+    ├── scenario-tests.md           # [v2.4] 49シナリオテスト
     └── ...                         # 17 more spec/data files
 ```
 

@@ -157,3 +157,11 @@ for i in $(seq 1 5); do
   sed -i '' '$d' "$FILE"
 done
 ```
+
+## Edge Cases
+
+- **errors/ directory missing at session start** → 自動作成、初エントリとしてログ
+- **known-patterns.jsonl corrupted** → 削除して現在のエラーログから再シード
+- **Diagnosis report write fails (disk full)** → Discord MCPで通知、不可ならstderrにログ
+- **Auto-fix applied but causes new error** → fix失敗としてマーク、同パターンの自動リトライ禁止
+- **Error log rotation未定義** → 30日超のログファイルをarchive/errorsに移動（月次）

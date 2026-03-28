@@ -114,3 +114,12 @@ Trigger: 「アーカイブから〇〇戻して」
 
 Archive is the final state. Files in archive/ are never automatically deleted.
 User can manually delete if they want, but bochi will never suggest deletion.
+
+## Edge Cases
+
+- **Search keyword matches zero entries** → 「その話題はまだ覚えてないゆ。調べるゆ？💫」+ Mode 1提案
+- **index.jsonl corrupted** → self-healing-spec JSONL Recovery手順に委譲
+- **archive/ directory missing** → 移動操作前に自動作成
+- **Restore target file already exists** → -restored サフィックスで重複回避、コンフリクトをログ
+- **Orphaned index entry (file missing)** → 「ファイルが見つからないゆ」と報告、エラーログに記録
+- **Archive candidates >20件** → 上位10件（最古順）を表示、「全部見るゆ？」で展開

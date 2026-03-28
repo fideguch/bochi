@@ -83,3 +83,10 @@ No commands needed. No formatting required.
 - No code blocks for general content (hard to read on mobile)
 - Links as inline markdown (clickable)
 - Reactions as primary feedback mechanism
+
+## Edge Cases
+
+- **Voice transcription fails or empty** → 「音声メモ、聞き取れなかったゆ。テキストで送ってくれるゆ？」
+- **Bookmark reaction on bochi's own message** → 無視（自分のメッセージにはメモ作成しない）
+- **Permission approval code expired/invalid** → 「そのコードは無効ゆ。新しいコードを確認してゆ」
+- **Long text on mobile (>500 chars)** → 通常処理、メモ確認は短縮形で返す
