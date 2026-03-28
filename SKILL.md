@@ -103,7 +103,7 @@ User input/information
 
 Discord経由の場合、`references/discord-ux-spec.md` を必ずロードし以下を守る:
 
-1. **本文300文字以内** — 超過分は引用返信（reply_to: 自分のmessage_id）。DMにスレッドはない
+1. **セクション分割** — 出力をセクション単位で分解し各メッセージ300文字以内。超過時は1情報ずつ
 2. **リアクション = ステータス表示** — 受信→調査中→完了をカテゴリ別ランダム絵文字で
 3. **長時間処理** — edit_messageで進捗通知、完了時は新メッセージ（push通知のため）
 4. **FigJam図** — 生成時はget_screenshotでPNG取得、reply filesで添付
