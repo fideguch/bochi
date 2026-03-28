@@ -57,3 +57,8 @@
 - /pm-discovery-interview-prep for user validation
 - /requirements_designer for formal requirements
 - Continue deep dive with bochi
+
+## Edge Cases
+
+- **ファイル書き込み失敗** → See `idea-expansion-spec.md` §Edge Cases。概要: Discord/CLIに直接表示、保存は次回セッションでリトライ
+- **ファイルパスの文字化け（CJK文字slug）** → 英数字+ハイフンのみのslug生成

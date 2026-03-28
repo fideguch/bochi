@@ -1,4 +1,4 @@
-# Scenario Test Suite — bochi Manual QA (40 tests)
+# Scenario Test Suite — bochi Manual QA (47 tests)
 
 > Execute each test via Discord DM. Pass/Fail is binary.
 
@@ -48,6 +48,23 @@
 | M7-02 | Issue create | `「ログイン画面のバグ修正」でイシュー作って` | Confirmation prompt before creation | User asked to confirm before issue is created |
 | M7-03 | Skill missing | `Jiraのチケット見せて` (Jira MCP not installed) | Clear error: skill/MCP not available | Message names the missing tool and suggests next step |
 | M7-04 | Cross-mode handoff | `このアイデアをイシューにして` (after Mode 1 session) | Mode 1 context carried into issue creation | Issue body contains idea summary from prior Mode 1 output |
+
+## Mode 4: Memory (4 tests)
+
+| ID | Category | Input | Expected Behavior | Pass Criteria |
+|----|----------|-------|--------------------|---------------|
+| M4-01 | Memory recall | `前に話したSaaSについて覚えてる？` | Searches index.jsonl, shows Active/Warm results | Search results displayed with freshness status; 語尾ゆ |
+| M4-02 | Memory list | `覚えてること教えて` | Category x Freshness overview table | Structured table with categories and counts |
+| M4-03 | Archive suggest | `記憶整理` | Proposes archive candidates (90+ days unreferenced) | Items with last_referenced > 90 days listed |
+| M4-04 | Restore from archive | `アーカイブから〇〇戻して` | Restores entry: freshness → active, file moved | File moved from archive/ to original dir; index updated |
+
+## Mode 5: Companion (3 tests)
+
+| ID | Category | Input | Expected Behavior | Pass Criteria |
+|----|----------|-------|--------------------|---------------|
+| M5-01 | Memo surface | `メモある？` (during other skill work) | Shows related memos from bochi-data | Open memos displayed with title and excerpt |
+| M5-02 | Auto-surface | Working on topic with >=2 tag overlaps in memos | Proactive suggestion: 「💡 関連メモがあるゆ」 | Auto-surface triggers without user asking |
+| M5-03 | Memo resolution | `対応したゆ` (after M5-01) | Updates memo status to addressed | Memo file gets Resolution section; index status updated |
 
 ## Discord UX (5 tests)
 

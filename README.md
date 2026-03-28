@@ -1,15 +1,40 @@
-# bochi v2.0 — PM Companion
+# bochi v2.3 — PM Companion
 
 アイデアの種（メモ・URL・ひらめき）を「構造化された仮説」に変換し、日々のPM活動を支えるコンパニオン Claude Code スキル。
 
-## What's New in v2.0
+## Product Vision
 
-- **5-Mode Router**: アイデア膨らまし + 新聞 + 雑談 + 記憶管理 + コンパニオン
-- **Context Signal Triggers**: 「考えて」「まとめて」等の抽象的な思考リクエストに自然に反応
-- **Persistent Data Layer**: `~/.claude/bochi-data/` に JSONL インデックス + 3層記憶管理
-- **Pipeline Position**: bochi → brainstorming → requirements_designer の上流/下流を明示
-- **Discord Integration**: Channels経由でスマホからアイデアメモ・新聞閲覧
-- **Cross-Context Memory**: Discord→CLI間でメモを自動共有
+bochiは「PMの思考をどこからでもアクセスできるハブ」。
+
+1. **思考のハブ**: Discord DM / Mac CLI / どこからでも同じ記憶にアクセスできる
+2. **S3データハブ**: bochi-data → S3 → 全環境同期。データは常に最新
+3. **能動的メモ保存**: 価値ある会話はbochiが保存を提案する。ユーザーの「メモして」を待たない
+
+## What's New in v2.3
+
+- **Thinking Hub**: Discord DMで生まれたアイデアがS3経由でMac CLIに自動伝播
+- **Mode 1 Spec分離**: Phase A-G を `references/idea-expansion-spec.md` に抽出（DRY改善）
+- **能動的メモ保存**: Intake Gateに4つのトリガー条件を追加
+- **Edge Cases強化**: socratic-levels, expansion-framework, output-template, self-healing に追加
+- **CI/CD**: markdownlint + 参照整合性チェック + テスト数検証
+- **DXファイル**: CONTRIBUTING.md, CHANGELOG.md, examples/mode-1-walkthrough.md
+- **47シナリオテスト**: Mode 4/5 の7件追加（全7モードカバー）
+
+<details>
+<summary>v2.0-v2.2 の変更</summary>
+
+### v2.2 — Lightsail + Mode 6/7
+
+- deploy/lightsail-claude.md, Mode 6 Google Brief, Mode 7 PM Tools, 40テスト
+
+### v2.1 — Speed + Signals
+
+- response-speed-spec (7技術), discord-ux-spec, seen-tracking cache
+
+### v2.0 — Initial Release
+
+- 5-Mode Router, Context Signal Triggers, Persistent Data Layer, Discord Integration
+</details>
 
 ## 突出した強み
 
@@ -29,7 +54,7 @@ bochi（思考拡張）→ `/brainstorming`（設計探索）→ `/requirements_
 ### 4. Mobile-First PM Journey
 Morning newspaper → commute memos → meeting-gap casual chat → evening memory review.
 
-## 5 Modes
+## 7 Modes
 
 | Mode | Trigger | Purpose |
 |------|---------|---------|
@@ -38,6 +63,8 @@ Morning newspaper → commute memos → meeting-gap casual chat → evening memo
 | 3 Casual Chat | `雑談`, `何か面白い？` | Related updates + serendipity |
 | 4 Memory | `記憶整理`, `覚えてること教えて` | Search, review, archive |
 | 5 Companion | `メモある？`, `前に話したやつ` | Surface relevant memos during work |
+| 6 Google Brief | `今日の予定`, `メール確認` | Calendar + Gmail from cache |
+| 7 PM Tools | `イシュー一覧`, `チケット作って` | Linear/GitHub Issue delegation |
 
 ## Quick Start
 
@@ -111,45 +138,47 @@ cd ~/.claude/skills && git clone <repo-url> bochi
 | 既存プロダクトのバグ修正 | 新アイデアではない | /brainstorming |
 | 緊急度の高い意思決定 | 全フェーズ実行は時間がかかる | 直接Claudeに質問 |
 
-## 設計目標スコア（Design Target Scores）
+## 品質スコア（Rubric Self-Assessment）
 
-> 以下はスキル設計時の自己評価による目標スコアであり、第三者評価ではありません。
+> 以下はGAFA Rubric v2（5次元×20点=100点満点）に基づく自己評価。
 
-| カテゴリ | スコア |
-|---------|--------|
-| GAFA 6軸合計 | 57/60 (95.0%) |
-| アイデア発散力 | 8/10 |
-| リサーチ力 | 8/10 |
-| 拡張力 | 8/10 |
-| ブラッシュアップ力 | 9/10 |
-| **総合** | **90/100** |
+| 次元 | v2.2 | v2.3 | 判定根拠 |
+|------|------|------|---------|
+| Maintainability | 15 | 16 | Mode 1分離+DRY改善。References表重複が残存 |
+| Reliability | 15 | 15 | 主要モードEdge Cases追加。全specカバーは未達 |
+| Testing & CI | 10 | 14 | CI追加+47テスト。Mode 4/5テスト薄い |
+| DX | 16 | 17 | CONTRIBUTING+CHANGELOG+examples全追加 |
+| Product | 16 | 16 | Vision追加。S3スクリプト未実装で相殺 |
+| **Total** | **72** | **78** | **Grade C+ → 目標B+(87)に向けて継続改善** |
 
 ## フォルダ構成
 
 ```
 bochi/
-├── SKILL.md                        # Main skill (433 lines, 5-mode router + context signals)
+├── SKILL.md                        # Main skill (329 lines, 7-mode router)
 ├── README.md                       # 本ファイル
 ├── README.en.md                    # English version
-└── references/
-    ├── quality-criteria.md         # E-E-A-T品質評価基準
-    ├── trusted-domains.md          # 信頼ドメインリスト
-    ├── research-strategy.md        # ドメイン別リサーチ戦略
-    ├── socratic-levels.md          # ソクラテス式8段階質問
-    ├── expansion-framework.md      # SCAMPER拡張フレームワーク
-    ├── critique-checklist.md       # 検証チェックリスト
-    ├── output-template.md          # 出力テンプレート (OST統合)
-    ├── interview-handoff.md        # interview-prep連携仕様
-    ├── feedback-log.md             # ユーザーFB履歴 (自動追記)
-    ├── learned-sources.md          # 高品質ソース蓄積 (自動追記)
-    ├── newspaper-spec.md           # [v2.0] 新聞モード仕様
-    ├── pdca-spec.md                # [v2.0] PDCA日次振り返り仕様
-    ├── casual-chat-spec.md         # [v2.0] 雑談モード仕様
-    ├── memory-spec.md              # [v2.0] 記憶管理仕様
-    ├── companion-spec.md           # [v2.0] コンパニオンモード仕様
-    ├── discord-setup.md            # [v2.0] Discord接続ガイド
-    ├── skill-tracking-spec.md      # [v2.0] スキル使用統計仕様
-    └── mobile-first-spec.md        # [v2.0] モバイルファーストUX仕様
+├── CONTRIBUTING.md                 # [v2.3] 貢献ガイド
+├── CHANGELOG.md                    # [v2.3] 変更履歴
+├── .markdownlint.json              # [v2.3] Lint設定
+├── .github/workflows/quality.yml   # [v2.3] CI/CD
+├── deploy/
+│   └── lightsail-claude.md         # [v2.2] Lightsail CLAUDE.md
+├── examples/
+│   └── mode-1-walkthrough.md       # [v2.3] Mode 1 E2Eウォークスルー
+└── references/                     # 28 spec files (on-demand load)
+    ├── idea-expansion-spec.md      # [v2.3] Mode 1 Phases A-G
+    ├── newspaper-spec.md           # Mode 2
+    ├── casual-chat-spec.md         # Mode 3
+    ├── memory-spec.md              # Mode 4
+    ├── companion-spec.md           # Mode 5 + S3 sync loop
+    ├── google-brief-spec.md        # [v2.2] Mode 6
+    ├── pm-tools-bridge-spec.md     # [v2.2] Mode 7
+    ├── discord-ux-spec.md          # [v2.1] Discord UX
+    ├── response-speed-spec.md      # [v2.1] 速度改善7技術
+    ├── self-healing-spec.md        # 自己修復 + JSONL回復
+    ├── scenario-tests.md           # [v2.3] 47シナリオテスト
+    └── ...                         # 17 more spec/data files
 ```
 
 ## ライセンス・クレジット

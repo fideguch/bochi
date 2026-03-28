@@ -1,15 +1,24 @@
-# bochi v2.0 — PM Companion
+# bochi v2.3 — PM Companion
 
 A Claude Code skill that transforms idea seeds (memos, URLs, sparks) into structured hypotheses and supports daily PM activities as a thinking companion.
 
-## What's New in v2.0
+## Product Vision
 
-- **5-Mode Router**: Idea expansion + Newspaper + Casual chat + Memory management + Companion
-- **Context Signal Triggers**: Naturally responds to abstract thinking requests like "think through", "help me think"
-- **Persistent Data Layer**: JSONL index + 3-layer memory management at `~/.claude/bochi-data/`
-- **Pipeline Position**: Explicit upstream/downstream: bochi → brainstorming → requirements_designer
-- **Discord Integration**: Idea memos and newspaper via mobile through Channels
-- **Cross-Context Memory**: Auto-share memos between Discord and CLI
+bochi is a "thinking hub accessible from anywhere" for PMs.
+
+1. **Thinking Hub**: Access the same memory from Discord DM, Mac CLI, or anywhere
+2. **S3 Data Hub**: bochi-data → S3 → all environments synced. Data is always current
+3. **Proactive Memo Save**: bochi proposes saving valuable conversations without waiting for "save this"
+
+## What's New in v2.3
+
+- **Thinking Hub**: Ideas born in Discord DM auto-propagate to Mac CLI via S3
+- **Mode 1 Spec Extraction**: Phases A-G moved to `references/idea-expansion-spec.md` (DRY)
+- **Proactive Memo Save**: 4 trigger conditions added to Intake Gate
+- **Edge Cases**: Added to socratic-levels, expansion-framework, output-template, self-healing
+- **CI/CD**: markdownlint + reference integrity + test count verification
+- **DX Files**: CONTRIBUTING.md, CHANGELOG.md, examples/mode-1-walkthrough.md
+- **47 Scenario Tests**: 7 new Mode 4/5 tests (all 7 modes covered)
 
 ## Key Strengths
 
@@ -29,7 +38,7 @@ Auto-handoff to `/pm-discovery-interview-prep` connects directly to user validat
 ### 4. Mobile-First PM Journey
 Morning newspaper → commute memos → meeting-gap casual chat → evening memory review.
 
-## 5 Modes
+## 7 Modes
 
 | Mode | Trigger | Purpose |
 |------|---------|---------|
@@ -38,6 +47,8 @@ Morning newspaper → commute memos → meeting-gap casual chat → evening memo
 | 3 Casual Chat | `雑談`, `何か面白い？` | Related updates + serendipity |
 | 4 Memory | `記憶整理`, `覚えてること教えて` | Search, review, archive |
 | 5 Companion | `メモある？`, `前に話したやつ` | Surface relevant memos during work |
+| 6 Google Brief | `今日の予定`, `メール確認` | Calendar + Gmail from cache |
+| 7 PM Tools | `イシュー一覧`, `チケット作って` | Linear/GitHub Issue delegation |
 
 ## Quick Start
 
@@ -111,18 +122,18 @@ Input (memo or URL)
 | Bug fixes for existing product | Not a new idea | /brainstorming |
 | Urgent decisions | Full flow takes time | Ask Claude directly |
 
-## Design Target Scores
+## Quality Score (Rubric Self-Assessment)
 
-> The following are self-assessed design target scores, not third-party evaluations.
+> Based on GAFA Rubric v2 (5 dimensions x 20 points = 100 max).
 
-| Category | Score |
-|----------|-------|
-| GAFA 6-Axis Total | 57/60 (95.0%) |
-| Ideation Power | 8/10 |
-| Research Power | 8/10 |
-| Expansion Power | 8/10 |
-| Refinement Power | 9/10 |
-| **Overall** | **90/100** |
+| Dimension | v2.2 | v2.3 | Notes |
+|-----------|------|------|-------|
+| Maintainability | 15 | 16 | Mode 1 extraction + DRY. References table duplication remains |
+| Reliability | 15 | 15 | Major mode Edge Cases added. Full spec coverage pending |
+| Testing & CI | 10 | 14 | CI added + 47 tests. Mode 4/5 tests thin |
+| DX | 16 | 17 | CONTRIBUTING + CHANGELOG + examples all present |
+| Product | 16 | 16 | Vision added. S3 scripts not yet implemented |
+| **Total** | **72** | **78** | **Grade C+ → targeting B+(87)** |
 
 ## Folder Structure
 

@@ -36,3 +36,8 @@ Select the 2-3 most effective for the user's idea. Do NOT present all 7.
 2. Select 2-3 most effective perspectives
 3. Present one concrete expansion per perspective
 4. User selects preferred direction → feed into Phase C research
+
+## Edge Cases
+
+- **全SCAMPER視点を拒否** → 「今の方向で深掘りするゆ？」でPhase C直行
+- **ユーザー無反応** → 最も関連性の高い1視点を自動選択してPhase C進行

@@ -46,7 +46,7 @@ Sources below E-E-A-T 28/40 MUST NOT be cited.
 ## Data Layer
 
 | Path | Purpose |
-|------|---------|
+| ------ | --------- |
 | ~/.claude/bochi-data/ | All persistent data (index, topics, memos, cache) |
 | ~/.claude/skills/bochi/ | Skill definition + reference specs |
 | ~/.claude/skills/bochi/references/ | On-demand spec files (load per mode) |
@@ -59,6 +59,25 @@ Sources below E-E-A-T 28/40 MUST NOT be cited.
 - Do NOT pre-load all references. Load only what the current mode needs.
 - Exception: parallel Read of next-phase references at mode detection is allowed.
 - git pull ~/bochi-skill to update definitions (handled by restart script).
+
+## S3 Sync (CRITICAL)
+
+- S3 bucket: bochi-sync-fumito (ap-northeast-1)
+- SessionStart: auto-pull from S3 (latest memos, topics, index)
+- PostToolUse: auto-push to S3 (after bochi-data writes)
+- hooks.json + scripts/hooks/ pre-configured on this server
+
+## Deployment Checklist
+
+On restart or deploy, verify:
+
+1. `~/.claude/bochi-data/` exists with `index.jsonl`
+2. `~/.claude/scripts/hooks/bochi-s3-*.sh` exist and are executable
+3. `aws s3 ls s3://bochi-sync-fumito/` succeeds
+4. `settings.local.json` exists at `~/bochi-skill/.claude/`
+   (SCP from Mac: `scp -i ~/.ssh/lightsail-bochi.pem ~/.claude/settings.local.json ubuntu@54.249.49.69:~/bochi-skill/.claude/`)
+5. `bun --version` works (symlink at `/usr/local/bin/bun`)
+6. `git -C ~/bochi-skill pull origin main` for latest skill definitions
 
 ## Language
 

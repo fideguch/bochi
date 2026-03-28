@@ -31,3 +31,9 @@
   - Clear concept → Start at Level 4-5
   - Well-defined plan → Start at Level 7-8
 - Max 5 questions, stop early if user says enough
+
+## Edge Cases
+
+- **ユーザー沈黙（30秒無反応）** → 1回だけ「考え中ゆ？待つゆ💫」、2回目以降はPhase B進行を提案
+- **不明瞭入力（絵文字のみ、1文字）** → Level 1から開始
+- **「もういい」「十分」** → 即座にPhase B移行

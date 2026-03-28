@@ -106,3 +106,32 @@ When bochi detects high-relevance context match (≥2 tag overlaps):
 - Date: YYYY-MM-DD
 - Action taken: {what was done}
 ```
+
+---
+
+## Discord → bochi-data → S3 → CLI Loop
+
+Discord DMで生まれたアイデア・反省・メモは、以下のサイクルで全環境に伝播する:
+
+```
+1. Discord: ユーザーがアイデアを述べる
+2. bochi: Intake Gate判定 → 「メモするゆ？」提案
+3. ユーザー承認 → memos/YYYY-MM-DD-slug.md作成
+4. PostToolUse hook → bochi-s3-push.sh → S3同期
+5. Mac CLI: SessionStart hook → bochi-s3-pull.sh → 最新メモ取得
+6. Mac CLI作業中: Mode 5 auto-surface → 「💡 関連メモがあるゆ」
+7. 対応完了 → status: addressed → S3同期 → Discord側も更新
+```
+
+このサイクルにより、Discord DMで5秒で捉えた着想が
+Mac CLIでの深い作業に自然に接続される。
+
+### Discord Proactive Save Triggers
+
+See `SKILL.md` §Discord Proactive Save for trigger rules.
+ここでは保存後のフロー詳細:
+
+1. **保存承認後**: memos/YYYY-MM-DD-slug.md 作成（Memo File Format準拠）
+2. **index.jsonl追記**: `channel:"discord"`, `status:"open"`
+3. **S3 push**: bochi-data全体を同期
+4. **次回CLI session**: SessionStart hookがS3 pullし、Mode 5が自動検出対象にする

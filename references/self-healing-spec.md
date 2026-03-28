@@ -131,3 +131,29 @@ Track improvement in errors/diagnosis-*.md
 3. **P2**: Auto-fix for known patterns — 既知パターンの自動修復
 4. **P3**: Pattern detection — 繰り返しパターンの検出と予防策提案
 5. **P4**: Morning report integration — 日次ヘルスチェック
+
+---
+
+## JSONL Recovery
+
+index.jsonl破損時（不完全行、JSON parse失敗）の回復手順:
+
+1. 最終行を `tail -1` で取得
+2. `python3 -c "import json; json.loads(input())"` で検証
+3. 失敗 → 最終行を `sed -i '' '$d'`（macOS）/ `sed -i '$d'`（Linux）で削除
+4. 再検証 → 成功するまで繰り返し（最大5行）
+5. 削除した行は `errors/jsonl-recovery-YYYY-MM-DD.log` に記録
+6. 回復完了後、Session Start Health Checkが自動で整合性を確認
+
+**自動回復スクリプト例:**
+```bash
+FILE=~/.claude/bochi-data/index.jsonl
+for i in $(seq 1 5); do
+  if tail -1 "$FILE" | python3 -c "import json,sys; json.loads(sys.stdin.read())" 2>/dev/null; then
+    echo "JSONL valid after removing $((i-1)) lines"
+    break
+  fi
+  tail -1 "$FILE" >> ~/.claude/bochi-data/errors/jsonl-recovery-$(date +%F).log
+  sed -i '' '$d' "$FILE"
+done
+```
