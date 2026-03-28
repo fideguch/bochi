@@ -99,6 +99,15 @@ User input/information
 
 ---
 
+## Discord Output Rules
+
+Discord経由の場合、`references/discord-ux-spec.md` を必ずロードし以下を守る:
+
+1. **本文500文字以内** — 超過分はスレッド返信（reply_to: 自分のmessage_id）
+2. **リアクション = ステータス表示** — 受信→調査中→完了をカテゴリ別ランダム絵文字で
+3. **長時間処理** — edit_messageで進捗通知、完了時は新メッセージ（push通知のため）
+4. **FigJam図** — 生成時はget_screenshotでPNG取得、reply filesで添付
+
 ## Mode Router
 
 ```
@@ -398,6 +407,7 @@ Discord: check sender_id against paired user.
 | `mobile-first-spec.md` | Mobile optimization |
 | `error-reporting-spec.md` | Error handling/reporting |
 | `self-healing-spec.md` | Session start health check |
+| `discord-ux-spec.md` | Discord出力・リアクション・UX |
 
 **Do NOT pre-load all references at skill invocation.**
 Load only the references needed for the current mode/phase.
