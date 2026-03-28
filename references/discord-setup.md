@@ -137,7 +137,7 @@ Format optimized for mobile (Discord Embed style):
 1. ...
 
 気になったらリアクションしてゆ！
-📌 で保存、❤️ でもっと、👎 で減らすゆ
+リアクション1個で続き、2個以上で「もっと！」ゆ 💫
 ```
 
 ## Memo Creation from Discord

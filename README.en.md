@@ -128,7 +128,7 @@ Input (memo or URL)
 
 ```
 bochi/
-├── SKILL.md                        # Main skill (372 lines, 5-mode router + context signals)
+├── SKILL.md                        # Main skill (433 lines, 5-mode router + context signals)
 ├── README.md                       # Japanese documentation
 ├── README.en.md                    # This file
 └── references/

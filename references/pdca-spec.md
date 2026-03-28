@@ -57,12 +57,11 @@ Applied via Edit tool to user-profile.yaml:
 
 | Signal | Adjustment |
 |--------|------------|
-| Positive reaction to article | category weight +0.05 |
-| Negative reaction | category weight -0.05 |
-| Save/bookmark reaction | category weight +0.03 |
-| 3-day consecutive skip | category weight -0.10 |
+| リアクション2個以上 | category weight +0.08 |
 | Mode 1 deep dive from category | category weight +0.08 |
+| ユーザー明示的指示（「〇〇の重み下げて」） | 指定カテゴリを手動調整 |
 
+ペナルティは存在しない。ウェイトは上がるのみ（SKILL.md Feedback Signal準拠）。
 Weight bounds: min 0.1, max 1.0
 
 ## Freshness Check (Weekly)
