@@ -30,3 +30,16 @@
 - High-quality source: **28/40+ (70%)**
 - Related article: **20/40+ (50%)**
 - Below 28 → exclude in Phase D, trigger additional search in Phase C
+
+## Threshold Tiers
+
+Different modes apply different E-E-A-T thresholds based on their purpose:
+
+| Tier | Score | Use Case | Rationale |
+|------|-------|----------|-----------|
+| Depth (default) | 28/40+ | Mode 1 research, citations | High confidence required for hypothesis building |
+| Breadth | 24/40+ | Mode 2 newspaper curation | Daily awareness needs wider net; lower bar acceptable |
+| Related | 20/40+ | Mode 3 casual topic suggestions | Serendipity value; clearly labeled as "related" |
+
+Mode 1 Phase C uses the **Depth** threshold by default.
+newspaper-spec.md uses the **Breadth** threshold for daily curation.

@@ -1,14 +1,17 @@
 name: Quality Gate
 on: [push, pull_request]
 jobs:
-  lint:
+  static:
+    name: Static Analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Markdown lint
         uses: DavidAnson/markdownlint-cli2-action@v19
         with:
           globs: '**/*.md'
+
       - name: Check references exist
         run: |
           exitcode=0
@@ -19,6 +22,7 @@ jobs:
             fi
           done < <(grep -oP '`references/[^`]+`' SKILL.md | tr -d '`')
           exit $exitcode
+
       - name: Count scenario tests
         run: |
           count=$(grep -cE '\| [A-Z]{1,3}[0-9]?-[0-9]{2} \|' references/scenario-tests.md)
@@ -27,3 +31,94 @@ jobs:
             exit 1
           fi
           echo "OK: $count tests found"
+
+      - name: Check LICENSE exists
+        run: test -f LICENSE
+
+      - name: Validate test scripts syntax
+        run: |
+          for f in tests/*.sh; do
+            bash -n "$f" || exit 1
+            echo "OK: $f"
+          done
+
+  infra:
+    name: Infrastructure E2E
+    runs-on: ubuntu-latest
+    needs: static
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload test scripts
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 54.249.49.69
+          username: ubuntu
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          timeout: 30s
+          source: "tests/infra-check.sh,tests/data-integrity.sh,tests/s3-sync-test.sh"
+          target: /tmp/bochi-tests
+          strip_components: 1
+
+      - name: Infrastructure check
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 54.249.49.69
+          username: ubuntu
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          timeout: 30s
+          command_timeout: 120s
+          script_stop: true
+          script: bash /tmp/bochi-tests/infra-check.sh
+
+      - name: Data integrity check
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 54.249.49.69
+          username: ubuntu
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          timeout: 30s
+          command_timeout: 120s
+          script_stop: true
+          script: bash /tmp/bochi-tests/data-integrity.sh
+
+      - name: S3 sync test
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 54.249.49.69
+          username: ubuntu
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          timeout: 30s
+          command_timeout: 120s
+          script_stop: true
+          script: bash /tmp/bochi-tests/s3-sync-test.sh
+
+      - name: Cleanup test scripts
+        if: always()
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 54.249.49.69
+          username: ubuntu
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          timeout: 30s
+          command_timeout: 10s
+          script: rm -rf /tmp/bochi-tests
+
+  discord-verify:
+    name: Discord Verify
+    runs-on: ubuntu-latest
+    needs: infra
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Run Discord post-interaction verification
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_USER_ID: ${{ secrets.DISCORD_USER_ID }}
+          LOOKBACK_MINUTES: '60'
+        run: bash tests/discord-e2e.sh

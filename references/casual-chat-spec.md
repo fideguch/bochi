@@ -30,27 +30,49 @@
       |   Select 1-2 surprising/cross-domain items
       |
   [3] Present 3-5 items total
-  [4] Append all presented article URLs to seen.jsonl
+  [4] Append all presented article URLs to seen.jsonl   ← HARD-GATE (below)
   [5] Collect user reactions → update profile weights (positive only)
   [6] Check cache/trending/ remaining count → if < 3 per category, background replenish
 ```
 
 ## Output Format
 
+E-E-A-Tスコアや内部ロジック名は表面に出さない。裏で評価し、表はあくまで自然な会話。
+
 ```
-ぼちぼち面白い話があるゆ 💫
+ねえねえ、ちょっと面白いの見つけたゆ 💫
 
-## 前に話したやつの続報 🌟
-1. **{トピックタイトル}** — {新しい展開1文} (E-E-A-T:{score})
-   前回: {date}に話した内容の要約
-2. ...
+あのさ、前に話してた{トピック名}の話なんだけど — {新しい展開を会話口調で1文}
+これ{ユーザーの関心との接点}と繋がると思うゆ 🌟
 
-## こんなのもあるゆ ✨
-1. **{意外なトピック}** — {なぜ面白いか1文} (E-E-A-T:{score})
-   {ユーザーの既存興味との接点を1文で説明}
+あと、{ユーザーの最上位カテゴリ}で気になったのがあってゆ:
+**{記事タイトル}** — {なぜこのユーザーが気になりそうかを1文}
 
-気になるのあったら深掘りするゆ！📌で保存もできるゆ 💗
+{最下位weightカテゴリからの意外な話題}も面白かったゆ ✨
+{ユーザーの既存興味との意外な接点を会話口調で}
+
+どれか気になるのあるゆ？深掘りしちゃうゆ 💗
 ```
+
+### 表面と内部の分離
+
+| ユーザーが見るもの | 内部で起きていること |
+|-----------------|------------------|
+| 「前に話してた〇〇の話」 | index.jsonl → topics/status:open → WebSearch latest |
+| 「これ絶対好きだと思う」 | user-profile.yaml top weight category → E-E-A-T ≥ 24/40 |
+| 「こんなのも面白かった」 | lowest weight category → cross-domain serendipity |
+| 「どれか気になる？」 | reaction待ち → weight更新トリガー |
+
+## Data Persistence (HARD-GATE)
+
+<HARD-GATE>
+記事提示後、Discord reply送信後に以下を**必ず実行**する。
+スキップすると同じ記事が何度も提示され、学習蓄積が機能しない。
+
+1. `echo '{"url":"...","seen_at":"YYYY-MM-DD","source":"casual","title":"..."}' >> seen.jsonl`（提示した全URL）
+
+seen.jsonlに記録しない限り、次回の雑談で同じ記事が再表示される。
+</HARD-GATE>
 
 ## Reaction Handling
 
@@ -87,3 +109,4 @@ When user shows interest in an item:
 - index.jsonlが空 or 読み取りエラー → 「まだデータがないゆ。最初のトピックを作るゆ？💫」
 - 全関連トピックがarchive → 「最近の話題がないゆ。何か面白いこと調べるゆ？✨」
 - ユーザーが1文字だけ入力 → bochiキャラで自然に返す（Mode強制しない）
+- 連続メッセージで先行応答が中断された場合 → Claude Code単一セッション制約。後着メッセージを処理後、「さっきのも気になるゆ？もう一回聞いてゆ 💫」と自然にフォロー

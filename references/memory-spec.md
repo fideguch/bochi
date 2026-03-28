@@ -85,9 +85,9 @@ Output:
 全部OKなら「全部OK」、個別に残すなら番号教えてゆ！
 ```
 
-Archive process:
-1. Edit index.jsonl entry: `freshness: "active"|"warm"` -> `"archive"`
-2. Move file from `topics/` or `memos/` to `archive/`
+Archive process (uses `Bash` tool for file operations):
+1. `mv ~/.claude/bochi-data/{topics|memos}/OLD.md ~/.claude/bochi-data/archive/`
+2. Edit index.jsonl entry: `freshness: "active"|"warm"` -> `"archive"`, update `"path"` to `archive/OLD.md`
 3. Log in reflections (PDCA)
 
 ### 4d: Restore (復元)

@@ -13,7 +13,7 @@ bochiは「PMの思考をどこからでもアクセスできるハブ」。
 ## What's New in v2.4
 
 - **Edge Cases全spec完備**: 全14 specファイルにEdge Casesセクション追加（v2.3の5/14→14/14）
-- **SKILL.md DRY完成**: Mode 2-7重複テーブル削除（329→313行）
+- **SKILL.md DRY完成**: Mode 2-7重複テーブル削除（329→333行）
 - **Session Continuity Protocol**: 6h再起動後のコンテキスト回復手順（fetch_messages, profile先行読み, open memo surfacing）
 - **49シナリオテスト**: Edge Caseテスト2件追加 + RS-03差別化（47→49）
 
@@ -197,7 +197,7 @@ CLI: 全セッションがOwner。Discord: access.jsonのpaired user_idで判定
 
 | 次元 | v2.3 | v2.4 | 判定根拠 |
 |------|------|------|---------|
-| Maintainability | 16 | 17 | SKILL.md 313行。Mode 2-7重複表削除完了 |
+| Maintainability | 16 | 17 | SKILL.md 333行。Mode 2-7重複表削除完了 |
 | Reliability | 15 | 17 | Edge Cases 14/14 spec完備。全フォールバック明示 |
 | Testing & CI | 14 | 15 | 49テスト。Edge Caseテスト追加。RS-03差別化 |
 | DX | 17 | 18 | Quick Start改善。Session Continuity Protocol追加 |
@@ -219,7 +219,7 @@ bochi/
 │   └── lightsail-claude.md         # [v2.2] Lightsail CLAUDE.md
 ├── examples/
 │   └── mode-1-walkthrough.md       # [v2.3] Mode 1 E2Eウォークスルー
-└── references/                     # 26 files (specs + data, on-demand load)
+└── references/                     # 27 files (specs + data, on-demand load)
     ├── idea-expansion-spec.md      # [v2.3] Mode 1 Phases A-G
     ├── newspaper-spec.md           # Mode 2
     ├── casual-chat-spec.md         # Mode 3

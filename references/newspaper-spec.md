@@ -30,8 +30,8 @@ ChatGPT Pulse / Dume.ai パターン準拠。
     +-- Stale or missing → Fallback to on-demand generation (Background Pass inline)
 [2] Run PDCA (references/pdca-spec.md) if morning trigger
 [3] Format output (see Output Format below)
-[4] Append all delivered article URLs to seen.jsonl
-[5] Save to newspaper/YYYY-MM-DD.md + index.jsonl
+[4] Append all delivered article URLs to seen.jsonl    ← HARD-GATE (below)
+[5] Save to newspaper/YYYY-MM-DD.md + index.jsonl     ← HARD-GATE (below)
 [6] Collect user reactions → update profile weights (positive only)
 ```
 
@@ -106,6 +106,19 @@ Save to `~/.claude/bochi-data/newspaper/YYYY-MM-DD.md`:
 ```bash
 echo '{"id":"news-YYYYMMDD","type":"newspaper","title":"Daily Brief YYYY-MM-DD","date":"YYYY-MM-DD","category":"newspaper","tags":[],"freshness":"active","channel":"cli","path":"newspaper/YYYY-MM-DD.md"}' >> ~/.claude/bochi-data/index.jsonl
 ```
+
+## Data Persistence (HARD-GATE)
+
+<HARD-GATE>
+新聞配信後、Discord reply送信前に以下を**必ず実行**する。
+スキップすると「脳」にデータが残らず、既読管理・アーカイブ・PDCAが全て破綻する。
+
+1. `echo '{"url":"...","seen_at":"YYYY-MM-DD","source":"newspaper","title":"..."}' >> seen.jsonl`（配信した全URL）
+2. `newspaper/YYYY-MM-DD.md` にファイル出力（プロフェッショナルモード）
+3. `echo '{"id":"news-YYYYMMDD",...}' >> index.jsonl`（1エントリ）
+
+実行確認: 3操作すべて完了後に最終replyを送信する。
+</HARD-GATE>
 
 ## Deep Dive Transition
 

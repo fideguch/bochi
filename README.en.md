@@ -13,7 +13,7 @@ bochi is a "thinking hub accessible from anywhere" for PMs.
 ## What's New in v2.4
 
 - **Edge Cases Complete**: All 14 spec files now have Edge Cases sections (v2.3: 5/14 → 14/14)
-- **SKILL.md DRY Complete**: Mode 2-7 duplicate table removed (329 → 313 lines)
+- **SKILL.md DRY Complete**: Mode 2-7 duplicate table removed (329 → 333 lines)
 - **Session Continuity Protocol**: 6h restart recovery with fetch_messages, profile preload, open memo surfacing
 - **49 Scenario Tests**: 2 Edge Case tests added + RS-03 differentiated (47 → 49)
 
@@ -154,7 +154,7 @@ Input (memo or URL)
 
 | Dimension | v2.3 | v2.4 | Notes |
 |-----------|------|------|-------|
-| Maintainability | 16 | 17 | SKILL.md 313 lines. Mode 2-7 duplicate table removed |
+| Maintainability | 16 | 17 | SKILL.md 333 lines. Mode 2-7 duplicate table removed |
 | Reliability | 15 | 17 | Edge Cases 14/14 specs complete. All fallbacks explicit |
 | Testing & CI | 14 | 15 | 49 tests. Edge Case tests added. RS-03 differentiated |
 | DX | 17 | 18 | Quick Start improved. Session Continuity Protocol added |
@@ -187,7 +187,7 @@ Owner (paired user) gets full interaction + learn + memorize. Others get read-on
 
 ```
 bochi/
-├── SKILL.md                        # Main skill (313 lines, 7-mode router)
+├── SKILL.md                        # Main skill (333 lines, 7-mode router)
 ├── README.md                       # Japanese documentation
 ├── README.en.md                    # This file
 ├── CONTRIBUTING.md                 # [v2.3] Contribution guide
@@ -198,7 +198,7 @@ bochi/
 │   └── lightsail-claude.md         # [v2.2] Lightsail CLAUDE.md
 ├── examples/
 │   └── mode-1-walkthrough.md       # [v2.3] Mode 1 E2E walkthrough
-└── references/                     # 26 files (specs + data, on-demand load)
+└── references/                     # 27 files (specs + data, on-demand load)
     ├── idea-expansion-spec.md      # [v2.3] Mode 1 Phases A-G
     ├── newspaper-spec.md           # Mode 2
     ├── casual-chat-spec.md         # Mode 3
