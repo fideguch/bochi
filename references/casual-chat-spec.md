@@ -13,21 +13,26 @@
 ```
 [Trigger: casual chat]
   |
-  [1] Load user-profile.yaml
-  [2] Build 2 streams:
+  [1] Load user-profile.yaml + seen.jsonl + cache/trending/ (並列Read)
+  [2] Build 2 streams IN PARALLEL:
       |
       +-- Related Stream (2-3 items)
-      |   Read index.jsonl -> topics from last 30 days (freshness: active)
-      |   For each: WebSearch "{topic title} latest update {date}"
-      |   Select top 2-3 with new developments
+      |   [a] Check cache/trending/*.jsonl for cached items (TTL < 12h)
+      |   [b] Filter out seen.jsonl entries (既読排除)
+      |   [c] If cache sufficient → use cached items (WebSearch不要)
+      |   [d] If cache empty/stale → Read index.jsonl -> topics from last 30d
+      |       → WebSearch "{topic title} latest update" → filter seen → select
       |
       +-- Serendipity Stream (1-2 items)
       |   Find lowest-weight categories in user-profile
       |   WebSearch trending topics in those categories
+      |   Filter out seen.jsonl entries
       |   Select 1-2 surprising/cross-domain items
       |
   [3] Present 3-5 items total
-  [4] Collect user reactions -> update profile weights
+  [4] Append all presented article URLs to seen.jsonl
+  [5] Collect user reactions → update profile weights (positive only)
+  [6] Check cache/trending/ remaining count → if < 3 per category, background replenish
 ```
 
 ## Output Format
@@ -49,11 +54,11 @@
 
 ## Reaction Handling
 
-Same as newspaper (see newspaper-spec.md):
-- Positive -> category weight +0.05
-- Negative -> category weight -0.05
-- Save (📌) -> create memo + weight +0.03
-- "もっと聞かせて" / "深掘り" -> transition to Mode 1
+Positive-only weights (see newspaper-spec.md):
+- リアクション1個 → 会話継続シグナル（seen.jsonlに記録）
+- リアクション2個以上 → カテゴリweight +0.08
+- "もっと聞かせて" / "深掘り" → transition to Mode 1 + カテゴリweight +0.08
+- ペナルティは存在しない。ウェイト下げはユーザーの明示的指示のみ
 
 ## Related Stream Selection
 

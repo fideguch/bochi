@@ -5,23 +5,34 @@
 毎朝08:00 JSTにユーザーの興味カテゴリに基づくニュースキュレーションを配信するゆ。
 ChatGPT Pulse / Dume.ai パターン準拠。
 
-## Flow
+## Flow (2-Pass Architecture)
+
+### Background Pass (RemoteTrigger bochi-prefetch, 06:00 JST)
 
 ```
-[Trigger: "新聞" or RemoteTrigger bochi-daily]
-  |
-  [1] Load user-profile.yaml -> interests.categories
-  [2] Run PDCA (references/pdca-spec.md) if morning trigger
-  |
-  [3] For each category (top 5 by weight):
-      WebSearch "{category} {date} news trends"
-      -> E-E-A-T evaluate each result
-      -> Select top 3 articles per category
-  |
-  [4] Format output (see Output Format below)
-  [5] Save to ~/.claude/bochi-data/newspaper/YYYY-MM-DD.md
-  [6] Append to index.jsonl
-  [7] Wait for user reactions -> update profile weights
+[1] Load user-profile.yaml -> interests.categories (top 5 by weight)
+[2] Load seen.jsonl -> build seen URL set
+[3] For each category IN PARALLEL:
+    WebSearch "{category} {date} news trends"
+    -> Filter out seen URLs
+    -> If insufficient after filter → additional WebSearch to replenish
+    -> E-E-A-T evaluate (>= 24/40)
+    -> Select top 3 per category
+[4] Save to cache/newspaper-draft.md + cache/trending/*.jsonl
+[5] Update cache/meta.json: newspaper_generated_at = now()
+```
+
+### Delivery Pass (ユーザー "新聞" or RemoteTrigger bochi-daily 08:00 JST)
+
+```
+[1] Check cache/meta.json
+    +-- newspaper_generated_at is today → Read cache/newspaper-draft.md
+    +-- Stale or missing → Fallback to on-demand generation (Background Pass inline)
+[2] Run PDCA (references/pdca-spec.md) if morning trigger
+[3] Format output (see Output Format below)
+[4] Append all delivered article URLs to seen.jsonl
+[5] Save to newspaper/YYYY-MM-DD.md + index.jsonl
+[6] Collect user reactions → update profile weights (positive only)
 ```
 
 ## Output Format (Console)
@@ -48,13 +59,16 @@ ChatGPT Pulse / Dume.ai パターン準拠。
 Emoji decoration: randomly select from 💗🥰✨💋🫶💕😘🌟💫🎀 per category.
 Vary the pattern each day.
 
-## Feedback Loop
+## Feedback Loop (Positive-Only Weights)
 
-User reactions (natural language or emoji):
-- Positive (😍👍❤️🔥 or "いいね", "面白い"): category weight +0.05
-- Negative (👎😐 or "微妙", "いらない"): category weight -0.05
-- Save (📌🔖💡 or "保存", "後で"): create auto memo + weight +0.03
-- 3 consecutive days skipped category: weight -0.1
+ペナルティは存在しない。ウェイトは上がるのみ。
+
+| ユーザー行動 | weight変更 |
+|------------|-----------|
+| リアクション1個 | なし（会話継続シグナルとして記録） |
+| リアクション2個以上 | カテゴリweight +0.08 |
+| 「深掘りして」でMode 1遷移 | カテゴリweight +0.08 |
+| 「〇〇の重み下げて」等 | 指定カテゴリのweight手動調整（ユーザー明示的指示のみ） |
 
 Weight updates: Edit user-profile.yaml via Edit tool.
 
@@ -62,7 +76,8 @@ Weight updates: Edit user-profile.yaml via Edit tool.
 
 - E-E-A-T score >= 24/40 (slightly lower than Mode 1 for breadth)
 - Published within 7 days
-- No duplicate URLs across last 7 newspapers
+- **NOT in seen.jsonl**（既読記事は絶対に再表示しない）
+- 既読フィルタ後に不足 → 追加WebSearchで補充
 - Prefer sources from trusted-domains.md and learned-sources.md
 
 ## File Output (Professional Mode)
