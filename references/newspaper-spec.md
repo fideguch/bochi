@@ -30,9 +30,9 @@ ChatGPT Pulse / Dume.ai パターン準拠。
 おはようゆ！今日の新聞ゆ 💗
 
 ## PM / Product ✨
-1. [タイトル](URL) (E-E-A-T:32) — 1文要約
-2. [タイトル](URL) (E-E-A-T:29) — 1文要約
-3. [タイトル](URL) (E-E-A-T:28) — 1文要約
+1. オンボーディング自動化でチャーン率30%改善 — [note.com](URL) (32)
+2. PLG企業のプライシング最新動向 — [hbr.org](URL) (29)
+3. B2Bプロダクト発見の5ステップ — [lenny.substack.com](URL) (28)
 
 ## AI / ML 🌟
 1. ...
@@ -75,9 +75,9 @@ Save to `~/.claude/bochi-data/newspaper/YYYY-MM-DD.md`:
 ## Categories & Articles
 
 ### PM / Product
-| # | Title | URL | E-E-A-T | Summary |
-|---|-------|-----|---------|---------|
-| 1 | ... | ... | /40 | ... |
+| # | Title | Source | E-E-A-T | Summary |
+|---|-------|--------|---------|---------|
+| 1 | {1語〜短文の要約} | [{domain}](URL) | /40 | {1文要約} |
 
 (repeat per category)
 

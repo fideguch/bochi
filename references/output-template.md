@@ -13,14 +13,14 @@
 ## Research Results
 
 ### High-Quality Sources (3)
-| # | Title | URL | E-E-A-T | Summary |
-|---|-------|-----|---------|---------|
-| 1 | | | /40 | |
-| 2 | | | /40 | |
-| 3 | | | /40 | |
+| # | Title | Source | E-E-A-T | Summary |
+|---|-------|--------|---------|---------|
+| 1 | {1語〜短文の要約} | [{domain}](URL) | /40 | {1文要約} |
+| 2 | | [{domain}](URL) | /40 | |
+| 3 | | [{domain}](URL) | /40 | |
 
 ### Related Articles (3)
-1. [Title](URL) — Why relevant / E-E-A-T: /40
+1. {1文要約} — [{domain}](URL) / E-E-A-T: /40
 2. ...
 3. ...
 

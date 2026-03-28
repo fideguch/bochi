@@ -280,6 +280,27 @@ Load: `references/output-template.md`
 `~/.claude/bochi-data/topics/YYYY-MM-DD-{slug}.md` に自動保存。
 テンプレートは `references/output-template.md` に従う。語尾「ゆ」なし。
 
+### Source Citation Format
+
+アウトプットのソース表示は以下のルールに従う:
+
+1. **ハイパーリンク形式**: `[タイトル要約 — ドメイン名](URL)`
+2. **タイトル要約**: 記事の内容を1語〜短いフレーズで要約（原題そのままではない）
+3. **ドメイン名**: URLからドメインだけ抽出して含める（example.com形式）
+4. **件数**: 各情報ブロックに対し1-2件。過剰に貼らない
+5. **配置**: 情報の直後にインラインで。テーブル内ではSource列にドメインリンク
+
+**コンソール例（Discord/CLI）:**
+```
+SaaSのチャーン対策としてオンボーディング自動化が注目されているゆ ✨
+📎 [SaaS解約防止の最新手法 — note.com](https://note.com/xxx)
+```
+
+**テーブル例（ファイル出力）:**
+```
+| 1 | SaaS解約防止手法 | [note.com](URL) | 32/40 | オンボーディング自動化で30%改善 |
+```
+
 **Index Update** (CRITICAL):
 After writing the topic file, append to index.jsonl via Bash:
 ```bash
