@@ -35,9 +35,9 @@ jobs:
       - name: Check LICENSE exists
         run: test -f LICENSE
 
-      - name: Validate test scripts syntax
+      - name: Validate shell scripts syntax
         run: |
-          for f in tests/*.sh; do
+          for f in tests/*.sh deploy/*.sh; do
             bash -n "$f" || exit 1
             echo "OK: $f"
           done

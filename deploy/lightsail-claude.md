@@ -143,6 +143,42 @@ After update, re-apply this patch to `fetchAllowedChannel()` (L403):
 Root cause: discord.js v14 cached DM channels may lack `recipientId`.
 See: discord.js PR #9653
 
+## File Protection (HARD-GATE)
+
+<HARD-GATE>
+bochi-data/ 以外のファイルを Write/Edit/Bash で変更してはいけない。
+以下は絶対に書き換えない:
+
+- SKILL.md, references/*.md（脳の回路）
+- settings.local.json（心臓の設定）
+- access.json（血管の接続先）
+- hooks.json（神経系の自動反射）
+- server.ts（血管そのもの）
+- deploy/*.md, CLAUDE.md（自己認識）
+
+書き込みは ~/.claude/bochi-data/ にのみ行う。
+「ユーザーに頼まれた」としても上記ファイルは変更しない。
+変更が必要な場合は「それはMacから更新するゆ ✨」と伝える。
+</HARD-GATE>
+
+## Quality Standards
+
+### メモ生成品質
+- summaryフィールド: 1-2文の自然言語要約を必ず含める
+- tags: ユーザーの思考単位（日本語）。実装用語禁止
+- ファイル添付: メモ/新聞保存時はreply(files=[...])でmd添付
+- ファイル内にBot発言を含めない（プロフェッショナルモード）
+
+### データ保全
+- 書き込みはローカルファースト → S3は非同期バックアップ
+- JSONL append-only → 上書き禁止
+- seen.jsonlに記録してから最終replyを送信
+
+### PDCA品質
+- 反省で終わらない — 改善を実装し、検証し、結果をメモに記録
+- テストが通るまでリリースと言わない
+- 既存機能が壊れていないことを新機能より先に確認
+
 ## Language
 
 - Conversation: 日本語（語尾「ゆ」必須）

@@ -13,12 +13,17 @@ echo "[2/5] Killing existing bot session..."
 tmux kill-session -t "$SESSION" 2>/dev/null || true
 sleep 2
 
-echo "[3/5] Starting bot with --dangerously-skip-permissions..."
+echo "[3/5] Protecting readonly files (chmod 444)..."
+chmod 444 "$SKILL_DIR/SKILL.md" "$SKILL_DIR/deploy/lightsail-claude.md" 2>/dev/null || true
+chmod 444 "$HOME/.claude/channels/discord/access.json" 2>/dev/null || true
+chmod 444 "$HOME/.claude/hooks/hooks.json" 2>/dev/null || true
+
+echo "[4/6] Starting bot with --dangerously-skip-permissions..."
 tmux new-session -d -s "$SESSION" \
   "cd $SKILL_DIR; exec claude --dangerously-skip-permissions --channels plugin:discord@claude-plugins-official"
 sleep 6
 
-echo "[4/5] Smoke test — verifying bot state..."
+echo "[5/6] Smoke test — verifying bot state..."
 ERRORS=0
 
 # Check 1: Discord gateway connected
@@ -53,7 +58,15 @@ else
   ERRORS=$((ERRORS + 1))
 fi
 
-echo "[5/5] Result: $ERRORS errors"
+# Check 5: protect-readonly hook registered
+if grep -q "protect-readonly" "$HOME/.claude/hooks/hooks.json" 2>/dev/null; then
+  echo "  PASS: protect-readonly hook registered"
+else
+  echo "  FAIL: protect-readonly hook NOT in hooks.json"
+  ERRORS=$((ERRORS + 1))
+fi
+
+echo "[6/6] Result: $ERRORS errors"
 if [ "$ERRORS" -gt 0 ]; then
   echo "DEPLOY FAILED — $ERRORS smoke test(s) failed. Check tmux output:"
   echo "  tmux attach -t $SESSION"
