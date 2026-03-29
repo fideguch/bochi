@@ -8,19 +8,21 @@ INPUT=$(cat 2>/dev/null || true)
 [ -z "$INPUT" ] && exit 0
 
 # Extract file_path from Write/Edit tool_input
-FILE_PATH=$(echo "$INPUT" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4 2>/dev/null || true)
+# Claude Code outputs JSON with spaces after colons: "file_path": "value"
+# Must handle both spaced and unspaced formats
+FILE_PATH=$(echo "$INPUT" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1 2>/dev/null || true)
 
 # Extract command from Bash tool_input for redirect/write detection
 if [ -z "$FILE_PATH" ]; then
-  COMMAND=$(echo "$INPUT" | grep -o '"command":"[^"]*"' | head -1 | cut -d'"' -f4 2>/dev/null || true)
+  COMMAND=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1 2>/dev/null || true)
   if [ -n "$COMMAND" ]; then
     FILE_PATH=$(echo "$COMMAND" | grep -oE '(~/|/home/[^/]+/)\.claude/(skills|channels|plugins|hooks)' | head -1 || true)
   fi
 fi
 
-# Fail-open: if path extraction fails, allow the write.
-# This prevents blocking legitimate operations on unexpected input formats.
-[ -z "$FILE_PATH" ] && exit 0
+# Fail-open: if path extraction fails, allow the write with explicit permissionDecision.
+# Without the JSON output, Claude Code shows a TUI permission prompt that freezes headless sessions.
+[ -z "$FILE_PATH" ] && echo '{"permissionDecision":"allow"}' && exit 0
 
 # ALLOW: bochi-data is the writable zone — explicit permissionDecision required
 # Without this JSON output, Claude Code shows a TUI "Do you want to create?" dialog
