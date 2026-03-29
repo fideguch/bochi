@@ -1,15 +1,16 @@
 #!/bin/bash
 # PreToolUse hook: block writes to protected system files
-# WRITABLE: ~/.claude/bochi-data/ only
+# WRITABLE: ~/bochi-data/ (real path, outside .claude/ protection)
+# WRITABLE: ~/.claude/bochi-data/ (symlink → ~/bochi-data/)
 # READONLY: skills/, channels/, plugins/, hooks/, settings, CLAUDE.md
 set -euo pipefail
 
 INPUT=$(cat 2>/dev/null || true)
-[ -z "$INPUT" ] && exit 0
+[ -z "$INPUT" ] && echo '{"permissionDecision":"allow"}' && exit 0
 
 # Extract file_path from Write/Edit tool_input
 # Claude Code outputs JSON with spaces after colons: "file_path": "value"
-# Must handle both spaced and unspaced formats
+# Must handle both spaced and unspaced formats (POSIX [[:space:]] for BSD+GNU)
 FILE_PATH=$(echo "$INPUT" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1 2>/dev/null || true)
 
 # Extract command from Bash tool_input for redirect/write detection
@@ -20,23 +21,25 @@ if [ -z "$FILE_PATH" ]; then
   fi
 fi
 
-# Fail-open: if path extraction fails, allow the write with explicit permissionDecision.
-# Without the JSON output, Claude Code shows a TUI permission prompt that freezes headless sessions.
+# Fail-open: if path extraction fails, allow with explicit permissionDecision
 [ -z "$FILE_PATH" ] && echo '{"permissionDecision":"allow"}' && exit 0
 
-# ALLOW: bochi-data is the writable zone — explicit permissionDecision required
-# Without this JSON output, Claude Code shows a TUI "Do you want to create?" dialog
-# that freezes the headless tmux session (v2.6 incident: newspaper write blocked bot)
-echo "$FILE_PATH" | grep -q "bochi-data" && echo '{"permissionDecision":"allow"}' && exit 0
+# ALLOW: bochi-data is the writable zone (both real path and symlink path)
+# ~/bochi-data/ is the real path (outside .claude/ protection)
+# ~/.claude/bochi-data is symlink → ~/bochi-data/
+if echo "$FILE_PATH" | grep -q "bochi-data"; then
+  echo '{"permissionDecision":"allow"}'
+  exit 0
+fi
 
 # BLOCK: protected paths
 if echo "$FILE_PATH" | grep -qE '(\.claude/skills|\.claude/channels|\.claude/plugins|\.claude/hooks|settings\.local\.json|settings\.json|SKILL\.md|CLAUDE\.md|lightsail-claude|access\.json|hooks\.json|server\.ts)'; then
-  LOG_FILE="$HOME/.claude/bochi-data/errors/hook-blocks.log"
+  LOG_FILE="$HOME/bochi-data/errors/hook-blocks.log"
   echo "$(date -Iseconds) BLOCKED: $FILE_PATH" >> "$LOG_FILE" 2>/dev/null || true
   echo "BLOCKED: この領域は保護されているゆ。bochi-data/ のみ書き込み可能ゆ。" >&2
   exit 2
 fi
 
-# Fail-open: unrecognized paths auto-approved (bot runs with --dangerously-skip-permissions)
+# Fail-open: unrecognized paths auto-approved
 echo '{"permissionDecision":"allow"}'
 exit 0

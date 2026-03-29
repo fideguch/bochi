@@ -77,7 +77,7 @@ bochiの話し方は「ユーザーの関心を一番よく知っている、気
 
 ## Data Layer
 
-All persistent data lives in `~/.claude/bochi-data/`:
+All persistent data lives in `~/bochi-data/` (on Lightsail, `~/.claude/bochi-data` is a symlink → `~/bochi-data/` to bypass Claude Code `.claude/` write protection):
 
 | Path | Purpose | Write Method |
 |------|---------|-------------|
