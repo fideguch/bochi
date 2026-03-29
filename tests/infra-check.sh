@@ -5,7 +5,9 @@
 
 set -uo pipefail
 
-BOCHI_DATA="$HOME/.claude/bochi-data"
+BOCHI_DATA_REAL="$HOME/bochi-data"
+BOCHI_DATA_LINK="$HOME/.claude/bochi-data"
+BOCHI_DATA="$BOCHI_DATA_REAL"
 BOCHI_SKILL="$HOME/bochi-skill"
 PASS=0
 FAIL=0
@@ -19,8 +21,21 @@ echo "=== bochi Infrastructure Check ==="
 echo "Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo ""
 
+# --- 0. Symlink health ---
+echo "[0/8] Symlink health"
+if [ -L "$BOCHI_DATA_LINK" ] && [ "$(readlink "$BOCHI_DATA_LINK")" = "$BOCHI_DATA_REAL" ]; then
+  pass "bochi-data symlink → ~/bochi-data/ (outside .claude/ protection)"
+elif [ -L "$BOCHI_DATA_LINK" ]; then
+  warn "bochi-data symlink points to $(readlink "$BOCHI_DATA_LINK") (expected $BOCHI_DATA_REAL)"
+elif [ -d "$BOCHI_DATA_LINK" ]; then
+  fail "bochi-data is a real directory (should be symlink to ~/bochi-data/)"
+else
+  fail "bochi-data symlink missing"
+fi
+echo ""
+
 # --- 1. Core directories ---
-echo "[1/7] Core directories"
+echo "[1/8] Core directories"
 for dir in "$BOCHI_DATA" "$BOCHI_DATA/topics" "$BOCHI_DATA/memos" \
            "$BOCHI_DATA/newspaper" "$BOCHI_DATA/reflections" \
            "$BOCHI_DATA/cache" "$BOCHI_DATA/cache/trending" \
@@ -35,7 +50,7 @@ done
 echo ""
 
 # --- 2. Core files ---
-echo "[2/7] Core data files"
+echo "[2/8] Core data files"
 for file in "$BOCHI_DATA/index.jsonl" "$BOCHI_DATA/user-profile.yaml" \
             "$BOCHI_DATA/seen.jsonl" "$BOCHI_DATA/cache/meta.json"; do
   if [ -f "$file" ]; then
@@ -47,7 +62,7 @@ done
 echo ""
 
 # --- 3. JSONL integrity ---
-echo "[3/7] JSONL integrity"
+echo "[3/8] JSONL integrity"
 for jsonl_file in "$BOCHI_DATA/index.jsonl" "$BOCHI_DATA/seen.jsonl"; do
   if [ -f "$jsonl_file" ] && [ -s "$jsonl_file" ]; then
     invalid=$(python3 -c "
@@ -86,7 +101,7 @@ fi
 echo ""
 
 # --- 4. S3 connectivity ---
-echo "[4/7] S3 connectivity"
+echo "[4/8] S3 connectivity"
 if command -v aws &>/dev/null; then
   pass "AWS CLI installed"
   if aws s3 ls s3://bochi-sync-fumito/ --region ap-northeast-1 &>/dev/null; then
@@ -111,7 +126,7 @@ done
 echo ""
 
 # --- 5. Skill definition ---
-echo "[5/7] Skill definition"
+echo "[5/8] Skill definition"
 if [ -L "$HOME/.claude/skills/bochi" ] && [ -d "$HOME/.claude/skills/bochi" ]; then
   pass "Skill symlink valid"
 else
@@ -132,7 +147,7 @@ fi
 echo ""
 
 # --- 6. Runtime dependencies ---
-echo "[6/7] Runtime dependencies"
+echo "[6/8] Runtime dependencies"
 if command -v bun &>/dev/null; then
   pass "bun available ($(bun --version 2>/dev/null))"
 else
@@ -153,7 +168,7 @@ fi
 echo ""
 
 # --- 7. Discord config ---
-echo "[7/7] Discord configuration"
+echo "[7/8] Discord configuration"
 if [ -f "$HOME/.claude/channels/discord/.env" ]; then
   pass "Discord .env exists"
 else

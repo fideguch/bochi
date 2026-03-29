@@ -121,17 +121,17 @@ SEEN_COUNT_BEFORE=""
 NEWSPAPER_COUNT_BEFORE=""
 REFLECTION_COUNT_BEFORE=""
 
-if ssh_cmd "test -f ~/.claude/bochi-data/seen.jsonl" 2>/dev/null; then
-  SEEN_COUNT_BEFORE=$(ssh_cmd "wc -l < ~/.claude/bochi-data/seen.jsonl" 2>/dev/null | tr -d '[:space:]')
+if ssh_cmd "test -f ~/bochi-data/seen.jsonl" 2>/dev/null; then
+  SEEN_COUNT_BEFORE=$(ssh_cmd "wc -l < ~/bochi-data/seen.jsonl" 2>/dev/null | tr -d '[:space:]')
   echo "  seen.jsonl lines: ${SEEN_COUNT_BEFORE:-unknown}"
 else
   echo "  seen.jsonl: not found"
 fi
 
-NEWSPAPER_COUNT_BEFORE=$(ssh_cmd "ls ~/.claude/bochi-data/newspaper/ 2>/dev/null | wc -l" 2>/dev/null | tr -d '[:space:]')
+NEWSPAPER_COUNT_BEFORE=$(ssh_cmd "ls ~/bochi-data/newspaper/ 2>/dev/null | wc -l" 2>/dev/null | tr -d '[:space:]')
 echo "  newspaper/ files: ${NEWSPAPER_COUNT_BEFORE:-0}"
 
-REFLECTION_COUNT_BEFORE=$(ssh_cmd "ls ~/.claude/bochi-data/reflections/ 2>/dev/null | wc -l" 2>/dev/null | tr -d '[:space:]')
+REFLECTION_COUNT_BEFORE=$(ssh_cmd "ls ~/bochi-data/reflections/ 2>/dev/null | wc -l" 2>/dev/null | tr -d '[:space:]')
 echo "  reflections/ files: ${REFLECTION_COUNT_BEFORE:-0}"
 
 echo ""
@@ -300,7 +300,7 @@ echo "[TEST 6] Server-side data verification"
 
 # 6a: seen.jsonl
 if [ -n "$SEEN_COUNT_BEFORE" ]; then
-  SEEN_COUNT_NOW=$(ssh_cmd "wc -l < ~/.claude/bochi-data/seen.jsonl" 2>/dev/null | tr -d '[:space:]')
+  SEEN_COUNT_NOW=$(ssh_cmd "wc -l < ~/bochi-data/seen.jsonl" 2>/dev/null | tr -d '[:space:]')
   if [ -n "$SEEN_COUNT_NOW" ] && [ "$SEEN_COUNT_NOW" -gt 0 ]; then
     pass "DATA-01: seen.jsonl has $SEEN_COUNT_NOW entries"
     if [ "$SEEN_COUNT_NOW" -gt "$SEEN_COUNT_BEFORE" ]; then
@@ -311,8 +311,8 @@ if [ -n "$SEEN_COUNT_BEFORE" ]; then
     warn "DATA-01: seen.jsonl is empty or unreadable"
   fi
 else
-  if ssh_cmd "test -f ~/.claude/bochi-data/seen.jsonl" 2>/dev/null; then
-    SEEN_COUNT_NOW=$(ssh_cmd "wc -l < ~/.claude/bochi-data/seen.jsonl" 2>/dev/null | tr -d '[:space:]')
+  if ssh_cmd "test -f ~/bochi-data/seen.jsonl" 2>/dev/null; then
+    SEEN_COUNT_NOW=$(ssh_cmd "wc -l < ~/bochi-data/seen.jsonl" 2>/dev/null | tr -d '[:space:]')
     pass "DATA-01: seen.jsonl exists ($SEEN_COUNT_NOW entries)"
   else
     warn "DATA-01: seen.jsonl not found (bot may not have processed newspaper yet)"
@@ -320,7 +320,7 @@ else
 fi
 
 # 6b: newspaper/ directory
-NEWSPAPER_COUNT_NOW=$(ssh_cmd "ls ~/.claude/bochi-data/newspaper/ 2>/dev/null | wc -l" 2>/dev/null | tr -d '[:space:]')
+NEWSPAPER_COUNT_NOW=$(ssh_cmd "ls ~/bochi-data/newspaper/ 2>/dev/null | wc -l" 2>/dev/null | tr -d '[:space:]')
 NEWSPAPER_COUNT_NOW="${NEWSPAPER_COUNT_NOW:-0}"
 if [ "$NEWSPAPER_COUNT_NOW" -gt 0 ]; then
   pass "DATA-02: newspaper/ has $NEWSPAPER_COUNT_NOW files"
@@ -329,7 +329,7 @@ else
 fi
 
 # 6c: reflections/ directory
-REFLECTION_COUNT_NOW=$(ssh_cmd "ls ~/.claude/bochi-data/reflections/ 2>/dev/null | wc -l" 2>/dev/null | tr -d '[:space:]')
+REFLECTION_COUNT_NOW=$(ssh_cmd "ls ~/bochi-data/reflections/ 2>/dev/null | wc -l" 2>/dev/null | tr -d '[:space:]')
 REFLECTION_COUNT_NOW="${REFLECTION_COUNT_NOW:-0}"
 if [ "$REFLECTION_COUNT_NOW" -gt 0 ]; then
   pass "DATA-03: reflections/ has $REFLECTION_COUNT_NOW files"

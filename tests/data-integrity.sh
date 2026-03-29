@@ -5,7 +5,7 @@
 
 set -uo pipefail
 
-BOCHI_DATA="$HOME/.claude/bochi-data"
+BOCHI_DATA="$HOME/bochi-data"
 PASS=0
 FAIL=0
 

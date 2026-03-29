@@ -58,7 +58,7 @@ Lightsailで直接修正した場合（緊急hotfix等）:
 
 v2.5→v2.6で発覚した事例:
 - `lightsail-claude.md` (L100): 「Write/Editツールを使用。Bash echo不可」
-- `casual-chat-spec.md` HARD-GATE: `echo >> seen.jsonl`（Bash指定）
+- `casual-chat-spec.md` HARD-GATE: Write tool (read-append) に修正済み
 - 結果: Permission制御でブロック → seen.jsonl空 → 既読管理全壊 → 記事が毎回同じ
 
 **教訓**: reference specはon-demandロードされるため、ランタイム仕様（lightsail-claude.md）

@@ -5,7 +5,7 @@
 
 set -uo pipefail
 
-BOCHI_DATA="$HOME/.claude/bochi-data"
+BOCHI_DATA="$HOME/bochi-data"
 S3_BUCKET="s3://bochi-sync-fumito"
 TEST_FILE="memos/test-s3-sync-$(date +%s).md"
 TEST_CONTENT="# S3 Sync Test\nTimestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)\nThis file verifies S3 round-trip."

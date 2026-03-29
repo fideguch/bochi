@@ -200,13 +200,29 @@ User Input
   [Mode Detection]
   +-- Mode 1: アイデア膨らまし (Phases A-G below)
   +-- Mode 2: 新聞 --> references/newspaper-spec.md
-  +-- Mode 3: 雑談 --> references/casual-chat-spec.md
+  +-- Mode 3: 雑談（記事提案+セレンディピティ） --> references/casual-chat-spec.md をロード＆フロー完遂
   +-- Mode 4: 記憶 --> references/memory-spec.md
   +-- Mode 5: コンパニオン --> references/companion-spec.md
   +-- Mode 6: Google Brief --> references/google-brief-spec.md
   +-- Mode 7: PM Tools --> references/pm-tools-bridge-spec.md
   +-- Default: どのモードにも該当しない → bochiキャラで短く自然に応答
 ```
+
+### Mode 3 実行ルール (HARD-GATE)
+
+<HARD-GATE>
+Mode 3 は「ただの雑談」ではない。**記事提案+セレンディピティ発見**モードである。
+トリガー（「雑談」「何か面白い？」「暇」等）を検出したら:
+
+1. `references/casual-chat-spec.md` を必ず Read でロードする
+2. spec の Flow（Related Stream + Serendipity Stream）を完遂する
+3. WebSearch で記事を検索し、seen.jsonl で既読フィルタする
+4. 3-5件の記事を bochi キャラで提示する
+5. seen.jsonl に提示記事を追記する（HARD-GATE）
+
+spec をロードせずに自由会話で返すことは禁止。
+「雑談」という名前に引きずられて casual な会話だけで終わらせない。
+</HARD-GATE>
 
 ### Default Handler
 

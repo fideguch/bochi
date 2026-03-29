@@ -6,7 +6,7 @@
 
 ## Data Storage
 
-- Usage stats: `~/.claude/bochi-data/stats/usage.jsonl` (Bash `echo >>`)
+- Usage stats: `~/bochi-data/stats/usage.jsonl` (Write tool, read-append)
 - Custom skills list: `user-profile.yaml` -> `custom_skills` array
 
 ## Usage Entry Format
