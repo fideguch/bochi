@@ -28,15 +28,15 @@ Trigger: 「〇〇について覚えてる？」「前に話した〇〇」
 Parameter examples:
 ```bash
 # Default search (5 results, newest first)
-grep -i "keyword" ~/.claude/bochi-data/index.jsonl | \
+grep -i "keyword" ~/bochi-data/index.jsonl | \
   python3 -c "import sys,json; lines=sys.stdin.readlines(); entries=[json.loads(l) for l in lines]; entries.sort(key=lambda x: x.get('date',''), reverse=True); [print(json.dumps(e)) for e in entries[:5]]"
 
 # Tag-filtered search (e.g., "Vibe Coding" tag, up to 30 results)
-grep '"Vibe Coding"' ~/.claude/bochi-data/index.jsonl | \
+grep '"Vibe Coding"' ~/bochi-data/index.jsonl | \
   python3 -c "import sys,json; lines=sys.stdin.readlines(); entries=[json.loads(l) for l in lines]; entries.sort(key=lambda x: x.get('date',''), reverse=True); [print(json.dumps(e)) for e in entries[:30]]"
 
 # Multi-tag filter (entries with BOTH tags)
-grep '"Vibe Coding"' ~/.claude/bochi-data/index.jsonl | grep '"PDCA"' | \
+grep '"Vibe Coding"' ~/bochi-data/index.jsonl | grep '"PDCA"' | \
   python3 -c "import sys,json; lines=sys.stdin.readlines(); entries=[json.loads(l) for l in lines]; entries.sort(key=lambda x: x.get('date',''), reverse=True); [print(json.dumps(e)) for e in entries[:30]]"
 ```
 
@@ -108,7 +108,7 @@ Output:
 ```
 
 Archive process (uses `Bash` tool for file operations):
-1. `mv ~/.claude/bochi-data/{topics|memos}/OLD.md ~/.claude/bochi-data/archive/`
+1. `mv ~/bochi-data/{topics|memos}/OLD.md ~/bochi-data/archive/`
 2. Edit index.jsonl entry: `freshness: "active"|"warm"` -> `"archive"`, update `"path"` to `archive/OLD.md`
 3. Log in reflections (PDCA)
 

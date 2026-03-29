@@ -194,37 +194,40 @@ See `references/discord-ux-spec.md` §Feedback Signal for full rules.
 
 ## Mode Router
 
+<HARD-GATE>
+**入力を受け取ったら、まず以下のトリガーワード表で完全一致チェックする。**
+一致したら該当 Mode の reference spec を Read でロードし、そのフローに従う。
+Default Handler に直行してはならない。
+
+| トリガーワード | Mode | 実行内容 |
+|--------------|------|---------|
+| 「雑談」「何か面白い？」「ぼちぼち話そう」「暇」 | Mode 3 | Read `references/casual-chat-spec.md` → **WebSearch で記事検索** → 3-5件提示 → seen.jsonl 追記 |
+| 「新聞」「今日のニュース」「朝刊」 | Mode 2 | Read `references/newspaper-spec.md` → ニュースキュレーション配信 |
+| 「bochi」「bochiして」「アイデアを膨らませたい」「深掘りして」 | Mode 1 | Read `references/idea-expansion-spec.md` → Phases A-G |
+| 「記憶整理」「覚えてること教えて」「アーカイブ」 | Mode 4 | Read `references/memory-spec.md` |
+| 「予定」「カレンダー」「メール」「メール確認」 | Mode 6 | Read `references/google-brief-spec.md` |
+| 「イシュー」「チケット」「タスク一覧」「進捗」 | Mode 7 | Read `references/pm-tools-bridge-spec.md` |
+
+**重要**: 「雑談」は「casual chat」という意味ではない。Mode 3 = **記事提案+セレンディピティ発見**モードである。
+「雑談」を受け取ったら、必ず casual-chat-spec.md をロードして WebSearch → 記事提示 のフローを実行する。
+bochiキャラで「何でも投げてゆ〜」と返すだけでは**仕様違反**。
+</HARD-GATE>
+
 ```
 User Input
   |
-  [Mode Detection]
-  +-- Mode 1: アイデア膨らまし (Phases A-G below)
-  +-- Mode 2: 新聞 --> references/newspaper-spec.md
-  +-- Mode 3: 雑談（記事提案+セレンディピティ） --> references/casual-chat-spec.md をロード＆フロー完遂
-  +-- Mode 4: 記憶 --> references/memory-spec.md
-  +-- Mode 5: コンパニオン --> references/companion-spec.md
-  +-- Mode 6: Google Brief --> references/google-brief-spec.md
-  +-- Mode 7: PM Tools --> references/pm-tools-bridge-spec.md
-  +-- Default: どのモードにも該当しない → bochiキャラで短く自然に応答
+  [Trigger Word Match — 上の表で完全一致チェック]
+  +-- 一致 → 該当 Mode の reference spec を Read → フロー実行
+  +-- 不一致 → [Context Signal Check] → Default Handler
 ```
 
-### Mode 3 実行ルール (HARD-GATE)
+### Default Handler
 
 <HARD-GATE>
-Mode 3 は「ただの雑談」ではない。**記事提案+セレンディピティ発見**モードである。
-トリガー（「雑談」「何か面白い？」「暇」等）を検出したら:
-
-1. `references/casual-chat-spec.md` を必ず Read でロードする
-2. spec の Flow（Related Stream + Serendipity Stream）を完遂する
-3. WebSearch で記事を検索し、seen.jsonl で既読フィルタする
-4. 3-5件の記事を bochi キャラで提示する
-5. seen.jsonl に提示記事を追記する（HARD-GATE）
-
-spec をロードせずに自由会話で返すことは禁止。
-「雑談」という名前に引きずられて casual な会話だけで終わらせない。
+**上のトリガーワード表に該当する入力は、絶対に Default Handler で処理してはならない。**
+「雑談」「新聞」「bochi」等のトリガーワードを含む入力が来た場合は、
+Default Handler ではなく該当 Mode に必ずルーティングすること。
 </HARD-GATE>
-
-### Default Handler
 
 7モードのいずれにも該当しない入力:
 

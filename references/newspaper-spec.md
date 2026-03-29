@@ -82,7 +82,7 @@ Weight updates: Edit user-profile.yaml via Edit tool.
 
 ## File Output (Professional Mode)
 
-Save to `~/.claude/bochi-data/newspaper/YYYY-MM-DD.md`:
+Save to `~/bochi-data/newspaper/YYYY-MM-DD.md`:
 
 ```markdown
 # Daily Brief - YYYY-MM-DD
@@ -113,13 +113,13 @@ Read→append→Write pattern で index.jsonl に追記:
 スキップすると「脳」にデータが残らず、既読管理・アーカイブ・PDCAが全て破綻する。
 
 1. seen.jsonl追記（Read→append→Write）:
-   - Read `~/.claude/bochi-data/seen.jsonl` で既存内容を取得
+   - Read `~/bochi-data/seen.jsonl` で既存内容を取得
    - 配信した全URLのJSONL行を末尾に追加:
      `{"url":"...","seen_at":"YYYY-MM-DD","source":"newspaper","title":"..."}`
    - Write tool で書き出し
 2. `newspaper/YYYY-MM-DD.md` にファイル出力（プロフェッショナルモード、Write tool）
 3. index.jsonl追記（Read→append→Write）:
-   - Read `~/.claude/bochi-data/index.jsonl` で既存内容を取得
+   - Read `~/bochi-data/index.jsonl` で既存内容を取得
    - 新エントリのJSONL行を末尾に追加
    - Write tool で書き出し
 

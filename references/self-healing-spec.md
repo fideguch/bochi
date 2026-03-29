@@ -14,7 +14,7 @@ bochi の自己診断・自動修復サイクル仕様。
 Session Start (tmux restart / cron reboot / manual start)
   |
   [Check Error Log]
-  ~/.claude/bochi-data/errors/*.jsonl
+  ~/bochi-data/errors/*.jsonl
   |
   +-- No unresolved errors → normal startup
   |
@@ -32,7 +32,7 @@ Session Start (tmux restart / cron reboot / manual start)
            +-- unknown → read error message, search for known patterns
         |
         [Generate Diagnosis Report]
-        → Save to ~/.claude/bochi-data/errors/diagnosis-YYYY-MM-DD.md
+        → Save to ~/bochi-data/errors/diagnosis-YYYY-MM-DD.md
         |
         [Auto-fix if possible]
         +-- PATH issue → verify symlinks (/usr/local/bin/bun etc.)
@@ -113,7 +113,7 @@ Track improvement in errors/diagnosis-*.md
 既知のエラーパターンと対処法を蓄積:
 
 ```
-~/.claude/bochi-data/errors/known-patterns.jsonl
+~/bochi-data/errors/known-patterns.jsonl
 ```
 
 ### Entry Format
@@ -147,13 +147,13 @@ index.jsonl破損時（不完全行、JSON parse失敗）の回復手順:
 
 **自動回復スクリプト例:**
 ```bash
-FILE=~/.claude/bochi-data/index.jsonl
+FILE=~/bochi-data/index.jsonl
 for i in $(seq 1 5); do
   if tail -1 "$FILE" | python3 -c "import json,sys; json.loads(sys.stdin.read())" 2>/dev/null; then
     echo "JSONL valid after removing $((i-1)) lines"
     break
   fi
-  tail -1 "$FILE" >> ~/.claude/bochi-data/errors/jsonl-recovery-$(date +%F).log
+  tail -1 "$FILE" >> ~/bochi-data/errors/jsonl-recovery-$(date +%F).log
   sed -i '' '$d' "$FILE"
 done
 ```

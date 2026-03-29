@@ -58,7 +58,7 @@ Discord Message Received
 エラー発生時、以下のファイルに記録:
 
 ```
-~/.claude/bochi-data/errors/YYYY-MM-DD.jsonl
+~/bochi-data/errors/YYYY-MM-DD.jsonl
 ```
 
 ### Entry Format

@@ -17,7 +17,7 @@
 [3] Check user reactions to yesterday's newspaper
 [4] Read recent memos (last 7 days, status:open)
 [5] Generate today's reflection
-[6] Save to ~/.claude/bochi-data/reflections/YYYY-MM-DD.md
+[6] Save to ~/bochi-data/reflections/YYYY-MM-DD.md
 [7] Apply weight adjustments to user-profile.yaml
 ```
 

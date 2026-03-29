@@ -147,7 +147,7 @@ Format optimized for mobile (Discord Embed style):
   |
   bochi detects memo-worthy content (Intake Gate: high importance)
   |
-  Write tool: ~/.claude/bochi-data/memos/YYYY-MM-DD-req-designer-phase3.md
+  Write tool: ~/bochi-data/memos/YYYY-MM-DD-req-designer-phase3.md
   |
   Read→append→Write: index.jsonl に channel:"discord" で追記
   |
