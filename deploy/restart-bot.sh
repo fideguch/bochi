@@ -27,6 +27,9 @@ if [ -d "$BOCHI_DATA_LINK" ] && [ ! -L "$BOCHI_DATA_LINK" ]; then
   if [ -d "$BOCHI_DATA" ]; then
     # Target already exists (partial migration?) — merge with rsync
     rsync -a --backup --suffix=".bak" "$BOCHI_DATA_LINK/" "$BOCHI_DATA/"
+    # Remove old directory so symlink can replace it
+    # (ln -sfn creates link INSIDE existing dir instead of replacing it)
+    rm -rf "$BOCHI_DATA_LINK"
   else
     mv "$BOCHI_DATA_LINK" "$BOCHI_DATA"
   fi
