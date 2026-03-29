@@ -19,8 +19,14 @@ chmod 444 "$HOME/.claude/channels/discord/access.json" 2>/dev/null || true
 chmod 444 "$HOME/.claude/hooks/hooks.json" 2>/dev/null || true
 
 echo "[4/6] Starting bot with --dangerously-skip-permissions..."
-tmux new-session -d -s "$SESSION" \
-  "cd $SKILL_DIR; exec claude --dangerously-skip-permissions --channels plugin:discord@claude-plugins-official"
+# Write launcher script to ensure flags are preserved across exec
+cat > /tmp/bochi-launcher.sh << 'LAUNCHER'
+#!/bin/bash
+cd /home/ubuntu/bochi-skill
+exec /usr/bin/claude --dangerously-skip-permissions --channels plugin:discord@claude-plugins-official
+LAUNCHER
+chmod +x /tmp/bochi-launcher.sh
+tmux new-session -d -s "$SESSION" "bash /tmp/bochi-launcher.sh"
 sleep 6
 
 echo "[5/6] Smoke test — verifying bot state..."

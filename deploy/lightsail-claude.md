@@ -93,6 +93,15 @@ Sources below E-E-A-T 28/40 MUST NOT be cited.
 | ~/.claude/skills/bochi/ | Skill definition + reference specs |
 | ~/.claude/skills/bochi/references/ | On-demand spec files (load per mode) |
 
+### Write Method (CRITICAL)
+
+bochi-data への書き込みは **Write/Edit ツールを使用**する。Bash の `echo >>` や `cat >` は使わない。
+理由: Bash 経由の ~/.claude/ 書き込みは sensitive file 保護に引っかかる可能性がある。
+
+- index.jsonl への追記: Read → 末尾に新行追加 → Write で全体書き出し
+- memos/ への新規作成: Write ツールで直接作成
+- cache/ への書き込み: Write ツールで直接作成
+
 ## Gotchas (CRITICAL)
 
 - gog CLI is NOT installed. Google data comes from cache/*.md (S3 sync from Mac).
