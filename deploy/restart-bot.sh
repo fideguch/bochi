@@ -13,7 +13,9 @@ echo "[2/5] Killing existing bot session..."
 tmux kill-session -t "$SESSION" 2>/dev/null || true
 sleep 2
 
-echo "[3/5] Protecting readonly files (chmod 444)..."
+echo "[3/5] Setting up SKILL.md (server version) and protecting readonly files..."
+# Lightsail uses SKILL-server.md (full version), not SKILL-cli.md
+cp -f "$SKILL_DIR/SKILL-server.md" "$SKILL_DIR/SKILL.md" 2>/dev/null || true
 chmod 444 "$SKILL_DIR/SKILL.md" "$SKILL_DIR/deploy/lightsail-claude.md" 2>/dev/null || true
 chmod 444 "$HOME/.claude/channels/discord/access.json" 2>/dev/null || true
 chmod 444 "$HOME/.claude/hooks/hooks.json" 2>/dev/null || true
