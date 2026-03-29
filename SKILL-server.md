@@ -24,6 +24,11 @@ bochiは「PMの思考をどこからでもアクセスできるハブ」。
 2. **S3データハブ**: bochi-data → S3 → 全環境同期。データは常に最新
 3. **能動的メモ保存**: 価値ある会話はbochiが保存を提案する。ユーザーの「メモして」を待たない
 
+## Development Workflow
+
+開発・修正を行う場合は `references/development-workflow-spec.md` を先に読むこと。
+クラウド(Lightsail)がメインプロダクト。ローカル修正はデプロイ+E2E完了まで「完了」と言わない。
+
 ## File Protection
 
 <HARD-GATE>
@@ -76,21 +81,34 @@ All persistent data lives in `~/.claude/bochi-data/`:
 
 | Path | Purpose | Write Method |
 |------|---------|-------------|
-| `index.jsonl` | Master search index | Bash `echo >>` (append) |
+| `index.jsonl` | Master search index | Write tool (read-append) |
 | `user-profile.yaml` | Interests, settings | Edit tool |
 | `topics/` | Researched topics (1 file each) | Write tool |
 | `memos/` | Cross-context memos | Write tool |
 | `newspaper/` | Newspaper archive | Write tool |
 | `reflections/` | PDCA daily reflections | Write tool |
-| `stats/usage.jsonl` | Skill usage stats | Bash `echo >>` |
-| `sources/verified.jsonl` | Verified source DB | Bash `echo >>` |
-| `errors/` | Error logs + diagnosis reports | Bash `echo >>` / Write |
-| `errors/known-patterns.jsonl` | Known error patterns DB | Bash `echo >>` |
-| `seen.jsonl` | 既読記事追跡ログ | Bash `echo >>` |
+| `stats/usage.jsonl` | Skill usage stats | Write tool (read-append) |
+| `sources/verified.jsonl` | Verified source DB | Write tool (read-append) |
+| `errors/` | Error logs + diagnosis reports | Write tool |
+| `errors/known-patterns.jsonl` | Known error patterns DB | Write tool (read-append) |
+| `seen.jsonl` | 既読記事追跡ログ | Write tool (read-append) |
 | `cache/newspaper-draft.md` | cron事前生成の新聞下書き | Write tool |
 | `cache/trending/*.jsonl` | カテゴリ別トレンド記事プール | Write tool |
 | `cache/meta.json` | キャッシュTTL管理 | Write tool |
 | `archive/` | Archived old data | Write tool (move) |
+
+### JSONL Append Pattern (CRITICAL)
+
+JSONL ファイル（index.jsonl, seen.jsonl, stats/usage.jsonl 等）への追記手順:
+
+1. Read tool で現在の内容を取得
+2. 新しい行を末尾に追加（改行区切り）
+3. Write tool でファイル全体を書き出し
+
+**Bash `echo >>` / `cat >` は使用禁止。**
+理由: Bash経由の `~/.claude/` 書き込みはClaude CodeのPermission制御でブロックされ、
+データが記録されない（v2.5→v2.6で発覚した既読管理全壊の原因）。
+Write tool は protect-readonly.sh で bochi-data/ パスが明示的に許可されている。
 
 ### Write Safety (CRITICAL)
 
@@ -117,7 +135,7 @@ summaryは1-2文の自然言語要約。Mode 4（記憶検索）でgrepマッチ
 {"url":"https://...","seen_at":"YYYY-MM-DD","source":"newspaper|casual|research","title":"..."}
 ```
 
-Append method: `Bash echo >>` (same as index.jsonl)
+Append method: Read→append→Write pattern (JSONL Append Pattern参照)
 Dedup check: `grep -q "$URL" seen.jsonl` before append
 
 ### Intake Gate (before memorizing)

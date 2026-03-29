@@ -103,9 +103,8 @@ Save to `~/.claude/bochi-data/newspaper/YYYY-MM-DD.md`:
 
 ## Index Entry
 
-```bash
-echo '{"id":"news-YYYYMMDD","type":"newspaper","title":"YYYY-MM-DD の朝刊","date":"YYYY-MM-DD","summary":"PM・AI・テック等のデイリーブリーフN件","category":"newspaper","tags":["朝刊"],"freshness":"active","channel":"discord","path":"newspaper/YYYY-MM-DD.md"}' >> ~/.claude/bochi-data/index.jsonl
-```
+Read→append→Write pattern で index.jsonl に追記:
+`{"id":"news-YYYYMMDD","type":"newspaper","title":"YYYY-MM-DD の朝刊","date":"YYYY-MM-DD","summary":"PM・AI・テック等のデイリーブリーフN件","category":"newspaper","tags":["朝刊"],"freshness":"active","channel":"discord","path":"newspaper/YYYY-MM-DD.md"}`
 
 ## Data Persistence (HARD-GATE)
 
@@ -113,10 +112,18 @@ echo '{"id":"news-YYYYMMDD","type":"newspaper","title":"YYYY-MM-DD の朝刊","d
 新聞配信後、Discord reply送信前に以下を**必ず実行**する。
 スキップすると「脳」にデータが残らず、既読管理・アーカイブ・PDCAが全て破綻する。
 
-1. `echo '{"url":"...","seen_at":"YYYY-MM-DD","source":"newspaper","title":"..."}' >> seen.jsonl`（配信した全URL）
-2. `newspaper/YYYY-MM-DD.md` にファイル出力（プロフェッショナルモード）
-3. `echo '{"id":"news-YYYYMMDD",...}' >> index.jsonl`（1エントリ）
+1. seen.jsonl追記（Read→append→Write）:
+   - Read `~/.claude/bochi-data/seen.jsonl` で既存内容を取得
+   - 配信した全URLのJSONL行を末尾に追加:
+     `{"url":"...","seen_at":"YYYY-MM-DD","source":"newspaper","title":"..."}`
+   - Write tool で書き出し
+2. `newspaper/YYYY-MM-DD.md` にファイル出力（プロフェッショナルモード、Write tool）
+3. index.jsonl追記（Read→append→Write）:
+   - Read `~/.claude/bochi-data/index.jsonl` で既存内容を取得
+   - 新エントリのJSONL行を末尾に追加
+   - Write tool で書き出し
 
+※ Bash `echo >>` は使用禁止（Permission制御でブロックされる。lightsail-claude.md Write Method準拠）
 実行確認: 3操作すべて完了後に最終replyを送信する。
 </HARD-GATE>
 

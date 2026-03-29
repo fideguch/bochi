@@ -149,7 +149,7 @@ Format optimized for mobile (Discord Embed style):
   |
   Write tool: ~/.claude/bochi-data/memos/YYYY-MM-DD-req-designer-phase3.md
   |
-  Bash echo >>: append to index.jsonl with channel:"discord"
+  Read→append→Write: index.jsonl に channel:"discord" で追記
   |
   reply tool: "メモったゆ！📝 CLIで作業するときに教えるゆ 💫"
 ```

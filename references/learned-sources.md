@@ -9,10 +9,9 @@ After Phase G positive feedback, update both:
 ```
 YYYY-MM-DD | domain.com | https://... | 32/40 | 4
 ```
-2. Runtime data (JSONL for programmatic access):
-```bash
-echo '{"url":"...","domain":"...","eeat_score":32,"date":"...","rating":4}' >> ~/.claude/bochi-data/sources/verified.jsonl
-```
+2. Runtime data (JSONL for programmatic access, Read→append→Write pattern):
+`{"url":"...","domain":"...","eeat_score":32,"date":"...","rating":4}`
+→ Read sources/verified.jsonl → 末尾に追加 → Write tool で書き出し
 
 ## Verified High-Quality Sources
 2026-03-28 | note.com | (initial seed) | 30/40 | 4
