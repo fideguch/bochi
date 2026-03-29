@@ -22,8 +22,10 @@ fi
 # This prevents blocking legitimate operations on unexpected input formats.
 [ -z "$FILE_PATH" ] && exit 0
 
-# ALLOW: bochi-data is the writable zone
-echo "$FILE_PATH" | grep -q "bochi-data" && exit 0
+# ALLOW: bochi-data is the writable zone — explicit permissionDecision required
+# Without this JSON output, Claude Code shows a TUI "Do you want to create?" dialog
+# that freezes the headless tmux session (v2.6 incident: newspaper write blocked bot)
+echo "$FILE_PATH" | grep -q "bochi-data" && echo '{"permissionDecision":"allow"}' && exit 0
 
 # BLOCK: protected paths
 if echo "$FILE_PATH" | grep -qE '(\.claude/skills|\.claude/channels|\.claude/plugins|\.claude/hooks|settings\.local\.json|settings\.json|SKILL\.md|CLAUDE\.md|lightsail-claude|access\.json|hooks\.json|server\.ts)'; then
@@ -33,4 +35,6 @@ if echo "$FILE_PATH" | grep -qE '(\.claude/skills|\.claude/channels|\.claude/plu
   exit 2
 fi
 
+# Fail-open: unrecognized paths auto-approved (bot runs with --dangerously-skip-permissions)
+echo '{"permissionDecision":"allow"}'
 exit 0
