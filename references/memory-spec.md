@@ -17,9 +17,30 @@ Trigger: 「〇〇について覚えてる？」「前に話した〇〇」
 ```
 [1] Read user query (natural language)
 [2] grep index.jsonl for matches in: title, summary, tags
-[3] Present top 3-5 matches with title + summary + date
-[4] User selects → send file as Discord attachment
+[3] Apply optional parameters:
+    - limit: number of results to return (default: 5, max: 30)
+    - sort: "newest_first" (default) | "oldest_first" | "relevance"
+    - tag_filter: restrict results to entries matching specific tag(s)
+[4] Present results with title + summary + date
+[5] User selects → send file as Discord attachment
 ```
+
+Parameter examples:
+```bash
+# Default search (5 results, newest first)
+grep -i "keyword" ~/.claude/bochi-data/index.jsonl | \
+  python3 -c "import sys,json; lines=sys.stdin.readlines(); entries=[json.loads(l) for l in lines]; entries.sort(key=lambda x: x.get('date',''), reverse=True); [print(json.dumps(e)) for e in entries[:5]]"
+
+# Tag-filtered search (e.g., "Vibe Coding" tag, up to 30 results)
+grep '"Vibe Coding"' ~/.claude/bochi-data/index.jsonl | \
+  python3 -c "import sys,json; lines=sys.stdin.readlines(); entries=[json.loads(l) for l in lines]; entries.sort(key=lambda x: x.get('date',''), reverse=True); [print(json.dumps(e)) for e in entries[:30]]"
+
+# Multi-tag filter (entries with BOTH tags)
+grep '"Vibe Coding"' ~/.claude/bochi-data/index.jsonl | grep '"PDCA"' | \
+  python3 -c "import sys,json; lines=sys.stdin.readlines(); entries=[json.loads(l) for l in lines]; entries.sort(key=lambda x: x.get('date',''), reverse=True); [print(json.dumps(e)) for e in entries[:30]]"
+```
+
+Note: When called from forge_ace PM-Admin, use tag_filter + sort: newest_first + limit: 30 to internalize Admin's judgment patterns.
 
 Output:
 ```

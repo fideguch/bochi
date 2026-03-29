@@ -6,16 +6,24 @@ set -euo pipefail
 SKILL_DIR="/home/ubuntu/bochi-skill"
 SESSION="bochi"
 
-echo "[1/5] Pulling latest skill definitions..."
+echo "[1/6] Pulling latest skill definitions..."
 cd "$SKILL_DIR" && git pull origin main
 
-echo "[2/5] Killing existing bot session..."
+echo "[2/6] Killing existing bot session..."
 tmux kill-session -t "$SESSION" 2>/dev/null || true
 sleep 2
 
-echo "[3/5] Setting up SKILL.md (server version) and protecting readonly files..."
+echo "[3/6] Setting up SKILL.md, syncing hook scripts, and protecting readonly files..."
 # Lightsail uses SKILL-server.md (full version), not SKILL-cli.md
 cp -f "$SKILL_DIR/SKILL-server.md" "$SKILL_DIR/SKILL.md" 2>/dev/null || true
+
+# Sync hook scripts from git repo to active hooks directory
+# CRITICAL: hooks.json references ~/.claude/scripts/hooks/ — git pull only updates ~/bochi-skill/deploy/
+# Without this cp, hook fixes are NEVER deployed (v2.6 Deployment-Sync Blindness incident)
+mkdir -p "$HOME/.claude/scripts/hooks"
+cp -f "$SKILL_DIR/deploy/protect-readonly.sh" "$HOME/.claude/scripts/hooks/protect-readonly.sh"
+chmod +x "$HOME/.claude/scripts/hooks/protect-readonly.sh"
+
 chmod 444 "$SKILL_DIR/SKILL.md" "$SKILL_DIR/deploy/lightsail-claude.md" 2>/dev/null || true
 chmod 444 "$HOME/.claude/channels/discord/access.json" 2>/dev/null || true
 chmod 444 "$HOME/.claude/hooks/hooks.json" 2>/dev/null || true
@@ -74,6 +82,16 @@ else
   ERRORS=$((ERRORS + 1))
 fi
 
+# Check 6: protect-readonly.sh is synced (contains permissionDecision)
+# v2.6 fix: without this, the hook silently exits 0 instead of outputting JSON,
+# causing Claude Code to show Permission:Write TUI prompts that freeze the bot
+if grep -q "permissionDecision" "$HOME/.claude/scripts/hooks/protect-readonly.sh" 2>/dev/null; then
+  echo "  PASS: protect-readonly hook has permissionDecision output"
+else
+  echo "  FAIL: protect-readonly hook is STALE (missing permissionDecision)"
+  ERRORS=$((ERRORS + 1))
+fi
+
 echo "[6/6] Result: $ERRORS errors"
 if [ "$ERRORS" -gt 0 ]; then
   echo "DEPLOY FAILED — $ERRORS smoke test(s) failed. Check tmux output:"
@@ -81,4 +99,4 @@ if [ "$ERRORS" -gt 0 ]; then
   exit 1
 fi
 
-echo "DEPLOY SUCCESS — bot is running with v2.5 specs"
+echo "DEPLOY SUCCESS — bot is running with v2.6 specs"
