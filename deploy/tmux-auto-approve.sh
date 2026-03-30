@@ -15,8 +15,8 @@ while true; do
   # Pattern 2: File edit prompt ("Do you want to make this edit?")
   # Pattern 3: Settings edit prompt ("edit its own settings")
   # Pattern 4: Generic permission prompt ("Permission:" in TUI)
-  if echo "$OUTPUT" | grep -qE "(Do you want to create|Do you want to make this edit|edit its own settings|❯ 1\. Yes)"; then
-    MATCHED=$(echo "$OUTPUT" | grep -oE "(Do you want to create|Do you want to make this edit|edit its own settings)" | head -1)
+  if echo "$OUTPUT" | grep -qE "(Do you want to create|Do you want to make this edit|edit its own settings|❯ 1\. Yes|Allow once|Permission:|permission to write|Allow this action)"; then
+    MATCHED=$(echo "$OUTPUT" | grep -oE "(Do you want to create|Do you want to make this edit|edit its own settings|Allow once|Permission:|permission to write|Allow this action)" | head -1)
     echo "$(date -Iseconds) AUTO-APPROVE: $MATCHED" >> "$LOG"
     tmux send-keys -t "$SESSION" "1" 2>/dev/null
     sleep 0.5

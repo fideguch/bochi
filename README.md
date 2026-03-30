@@ -61,7 +61,7 @@ Morning newspaper → commute memos → meeting-gap casual chat → evening memo
 |------|---------|---------|
 | 1 Idea | `bochiして`, URL, 思考系動詞+コンテキスト | Deep dive + expand + research |
 | 2 Newspaper | `新聞`, `朝刊`, cron 08:00 JST | Daily curated news by interest |
-| 3 Casual Chat | `雑談`, `何か面白い？` | Related updates + serendipity |
+| 3 Casual Chat | `おすすめ`, `何か面白い？` | Related updates + serendipity |
 | 4 Memory | `記憶整理`, `覚えてること教えて` | Search, review, archive |
 | 5 Companion | `メモある？`, `前に話したやつ` | Surface relevant memos during work |
 | 6 Google Brief | `今日の予定`, `メール確認` | Calendar + Gmail from cache |
@@ -75,7 +75,7 @@ cd ~/.claude/skills && git clone <repo-url> bochi
 
 # Data directory is created on first use at ~/.claude/bochi-data/
 
-# Basic usage — say: "bochiして" or "新聞" or "雑談"
+# Basic usage — say: "bochiして" or "新聞" or "おすすめ"
 
 # Discord setup (optional) — see references/discord-setup.md
 ```

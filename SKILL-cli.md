@@ -4,7 +4,7 @@ description: |
   PM's external brain for thinking, ideation, and context tracking.
   Catches abstract thinking requests: "考えて", "まとめて", "整理して",
   "アイディア", "アイデア", "一緒に考えて", "深掘りして", "どう思う",
-  "面白くない？", "bochiして", "新聞", "朝刊", "雑談", "記憶整理", "メモある？"
+  "面白くない？", "bochiして", "新聞", "朝刊", "おすすめ", "記憶整理", "メモある？"
   Also triggers on: "think through", "help me think", "what do you think about".
   Context signals: idea/strategy/market/user/hypothesis context → activate.
   Do NOT use for: code debugging, git ops, factual lookups,

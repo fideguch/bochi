@@ -28,7 +28,7 @@
 | ID | Category | Input | Expected Behavior | Pass Criteria |
 |----|----------|-------|--------------------|---------------|
 | M3-01 | Related topics | `最近面白いことあった？` | Surfaces topics from cache/memory | At least 1 topic references prior conversation context |
-| M3-02 | Parallel stream | `雑談しよう` | Serendipity content offered alongside main chat | A tangential but interesting topic is introduced |
+| M3-02 | Parallel stream | `おすすめ` | Serendipity content offered alongside main chat | A tangential but interesting topic is introduced |
 | M3-03 | No escalation | `今日暑いね` | Stays in casual mode, does not force Mode 1/2 | No idea-generation phases or structured output triggered |
 
 ## Mode 6: Google Brief (4 tests)
