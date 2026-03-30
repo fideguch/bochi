@@ -24,7 +24,8 @@ fi
 # Without this flag, any Write/Edit tool call would hang waiting for user input.
 CRON_DAILY='0 23 * * * cd /home/ubuntu/bochi-skill && /usr/bin/claude --dangerously-skip-permissions --channels plugin:discord@claude-plugins-official --trigger bochi-daily 2>>/home/ubuntu/bochi-data/errors/cron.log'
 CRON_PREFETCH='0 21 * * * cd /home/ubuntu/bochi-skill && /usr/bin/claude --dangerously-skip-permissions --trigger bochi-prefetch 2>>/home/ubuntu/bochi-data/errors/cron.log'
-CRON_REBOOT='@reboot sleep 10 && /home/ubuntu/bochi-tmux-start.sh start'
+CRON_REBOOT='@reboot sleep 10 && /home/ubuntu/bochi-skill/deploy/bochi-tmux-start.sh start'
+CRON_HEALTH='*/2 * * * * /home/ubuntu/bochi-skill/deploy/bochi-health-check.sh >> /home/ubuntu/bochi-data/errors/watchdog-cron.log 2>&1'
 
 # Get existing crontab (suppress "no crontab" error)
 EXISTING=$(crontab -l 2>/dev/null || true)
@@ -55,6 +56,15 @@ if echo "$EXISTING" | grep -q "bochi-tmux-start"; then
 else
   EXISTING=$(printf '%s\n%s' "$EXISTING" "$CRON_REBOOT")
   echo "  ADD: @reboot bot startup"
+  ADDED=$((ADDED + 1))
+fi
+
+# Add health check if not present
+if echo "$EXISTING" | grep -q "bochi-health-check"; then
+  echo "  SKIP: health check already configured"
+else
+  EXISTING=$(printf '%s\n%s' "$EXISTING" "$CRON_HEALTH")
+  echo "  ADD: health check (every 2 minutes)"
   ADDED=$((ADDED + 1))
 fi
 
