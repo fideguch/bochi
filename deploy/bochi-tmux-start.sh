@@ -156,6 +156,10 @@ LAUNCHER_EOF
     return 1
   fi
 
+  # Reset Phase 2 responsiveness probe state to prevent false positives after restart
+  rm -f /tmp/bochi-pane-hash
+  echo "0" > /tmp/bochi-stale-count
+
   echo "START SUCCESS"
   log_event "start" "$reason" "true"
   return 0
