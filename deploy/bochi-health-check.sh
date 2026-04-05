@@ -43,11 +43,11 @@ check_backoff() {
            python3 -c "from datetime import datetime,timedelta;print((datetime.utcnow()-timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%SZ'))")
 
   local count
-  count=$(python3 -c "
-import json, sys
+  count=$(WATCHDOG_LOG_PATH="$WATCHDOG_LOG" CUTOFF="$cutoff" python3 -c "
+import json, os
 count = 0
-cutoff = '$cutoff'
-for line in open('$WATCHDOG_LOG'):
+cutoff = os.environ['CUTOFF']
+for line in open(os.environ['WATCHDOG_LOG_PATH']):
     line = line.strip()
     if not line:
         continue
@@ -128,6 +128,16 @@ phase2_responsiveness_probe() {
     tmux send-keys -t "$SESSION" Enter 2>/dev/null
     # Don't restart yet — check again on next cycle
     return 0
+  fi
+
+  # Check if Claude is in healthy idle state (waiting for Discord messages)
+  # This prevents false "unresponsive" detection when bochi is simply waiting for input
+  if grep -q "Listening for channel messages" "$PANE_CAPTURE" 2>/dev/null; then
+    if grep -q "❯" "$PANE_CAPTURE" 2>/dev/null; then
+      echo "0" > "$STALE_COUNT_FILE"
+      echo "PHASE2: Idle-healthy (listening for messages)"
+      return 0
+    fi
   fi
 
   # Calculate hash of pane content
