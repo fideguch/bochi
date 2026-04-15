@@ -6,6 +6,11 @@ description: |
   "アイディア", "アイデア", "一緒に考えて", "深掘りして", "どう思う",
   "面白くない？", "bochiして", "新聞", "朝刊", "おすすめ", "記憶整理", "メモある？"
   Also triggers on: "think through", "help me think", "what do you think about".
+  Vocab triggers: "単語", "英単語", "単語帳", "クイズ", "復習", "vocab",
+  "単語登録", "単語一覧", "単語テスト", "vocabulary", "英語".
+  Bare English word detection: when user sends a single English word or short phrase
+  (e.g. "Specific", "ubiquitous", "take into account"), activate Mode 8 registration
+  if the word is at ターゲット1900 level or above (skip basic daily words like "run", "big", "happy").
   Context signals: idea/strategy/market/user/hypothesis context → activate.
   Do NOT use for: code debugging, git ops, factual lookups,
   or when brainstorming skill is already active for design work.
@@ -96,6 +101,9 @@ All persistent data lives in `~/bochi-data/` (on Lightsail: `/home/ubuntu/bochi-
 | `cache/trending/*.jsonl` | カテゴリ別トレンド記事プール | Write tool |
 | `cache/meta.json` | キャッシュTTL管理 | Write tool |
 | `archive/` | Archived old data | Write tool (move) |
+| `vocab/notebook.jsonl` | 英単語帳データ | Write tool (read-append) |
+| `vocab/review-log.jsonl` | クイズセッション履歴 | Write tool (read-append) |
+| `vocab/stats.json` | 単語帳集計統計 | Write tool |
 
 ### JSONL Append Pattern (CRITICAL)
 
@@ -207,6 +215,7 @@ Default Handler に直行してはならない。
 | 「記憶整理」「覚えてること教えて」「アーカイブ」 | Mode 4 | Read `references/memory-spec.md` |
 | 「予定」「カレンダー」「メール」「メール確認」 | Mode 6 | Read `references/google-brief-spec.md` |
 | 「イシュー」「チケット」「タスク一覧」「進捗」 | Mode 7 | Read `references/pm-tools-bridge-spec.md` |
+| 「単語」「英単語」「単語帳」「クイズ」「復習」「vocab」「英語」+ 裸の英単語/フレーズ | Mode 8 | Read `references/vocab-notebook-spec.md` → 登録/クイズ/一覧/統計/検索 |
 
 **重要**: 「おすすめ」= Mode 3 = **記事提案+セレンディピティ発見**モードである。
 「おすすめ」を受け取ったら、必ず casual-chat-spec.md をロードして WebSearch → 記事提示 のフローを実行する。
@@ -282,6 +291,7 @@ User Input
 **Mode 5**: During other skill work: 「bochi」「メモある？」「前に話したやつ」
 **Mode 6**: 「予定」「カレンダー」「メール」「今日の予定」「メール確認」「schedule」「inbox」
 **Mode 7**: 「イシュー」「チケット」「タスク一覧」「Issue」「進捗」「バックログ」+ 「イシュー作って」「ステータス変えて」等のアクション動詞
+**Mode 8**: 「単語」「英単語」「単語帳」「クイズ」「復習」「vocab」「単語登録」「単語一覧」「単語テスト」「vocabulary」「英語」+ 裸の英単語/フレーズ（ターゲット1900レベル以上）
 
 ### Negative Triggers (never activate)
 
@@ -380,6 +390,7 @@ Discord: check sender_id against paired user.
 | `response-speed-spec.md` | 7技術のレスポンス速度改善 |
 | `google-brief-spec.md` | Mode 6 |
 | `pm-tools-bridge-spec.md` | Mode 7 |
+| `vocab-notebook-spec.md` | Mode 8 |
 | `scenario-tests.md` | Manual test suite (49+ scenarios) |
 
 **Do NOT pre-load all references at skill invocation.**

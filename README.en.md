@@ -55,7 +55,7 @@ Auto-handoff to `/pm-discovery-interview-prep` connects directly to user validat
 ### 4. Mobile-First PM Journey
 Morning newspaper → commute memos → meeting-gap casual chat → evening memory review.
 
-## 7 Modes
+## 8 Modes
 
 | Mode | Trigger | Purpose |
 |------|---------|---------|
@@ -66,6 +66,7 @@ Morning newspaper → commute memos → meeting-gap casual chat → evening memo
 | 5 Companion | `メモある？`, `前に話したやつ` | Surface relevant memos during work |
 | 6 Google Brief | `今日の予定`, `メール確認` | Calendar + Gmail from cache |
 | 7 PM Tools | `イシュー一覧`, `チケット作って` | Linear/GitHub Issue delegation |
+| 8 Vocab | `単語帳`, `クイズ`, bare English word/phrase | Vocabulary notebook + SM-2 quiz + bulk add |
 
 ## Quick Start
 
@@ -212,6 +213,7 @@ bochi/
     ├── companion-spec.md           # Mode 5 + S3 sync loop
     ├── google-brief-spec.md        # [v2.2] Mode 6
     ├── pm-tools-bridge-spec.md     # [v2.2] Mode 7
+    ├── vocab-notebook-spec.md      # Mode 8 Vocabulary + SM-2
     ├── discord-ux-spec.md          # [v2.1] Discord UX
     ├── response-speed-spec.md      # [v2.1] Speed optimization (7 techniques)
     ├── self-healing-spec.md        # Self-healing + JSONL recovery
