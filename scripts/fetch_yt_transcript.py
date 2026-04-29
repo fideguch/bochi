@@ -8,37 +8,47 @@ environments via the existing bochi-data → S3 sync pipeline.
 
 Architecture (tiered fallback):
 
-    Tier 1 (instant, free, works everywhere):
+    Tier 1 (instant, free, works everywhere — including cloud IPs):
       Read ~/bochi-data/transcripts/<video_id>.txt cache
+    Tier 2c (cloud IP, optional Cloudflare Worker proxy):
+      If BOCHI_YT_PROXY_URL is set, fetch via the Worker (Cloudflare's edge
+      IP is not blocked by YouTube) → write cache → return
     Tier 2 (residential IP only, e.g., Mac at home):
-      Fetch via youtube-transcript-api → write cache → return text
-      The cache then syncs to S3 → all bot environments via PostToolUse hook
-    Tier 3 (cloud IP, cache miss):
+      Fetch via youtube-transcript-api → write cache → return
+      The cache syncs to S3 → all bot environments via existing safety-push
+    Tier 3 (cloud IP, cache miss, no proxy configured):
       Exit 4 with instruction telling the operator to fetch on a residential IP
 
 Usage:
     python3 scripts/fetch_yt_transcript.py <url_or_id> [lang]
-        — try cache, then fetch if cache miss and we are on a residential IP
+        — try cache → Tier 2c (if configured) → Tier 2 (residential)
     python3 scripts/fetch_yt_transcript.py --cache-only <url_or_id>
         — read cache only, never call the network
     python3 scripts/fetch_yt_transcript.py --no-cache <url_or_id>
-        — bypass cache, force fetch (residential IP only)
+        — bypass cache, force fetch via Tier 2c then Tier 2
     python3 scripts/fetch_yt_transcript.py --list-cached
         — list video IDs currently cached
+
+Environment variables (optional):
+    BOCHI_YT_PROXY_URL    — Cloudflare Worker URL (enables Tier 2c)
+    BOCHI_YT_PROXY_TOKEN  — shared secret for the Worker (X-Bochi-Token header)
 
 Exit codes:
     0  — success (text on stdout)
     1  — usage error
-    2  — youtube-transcript-api not installed
-    3  — fetch failed (likely IP-blocked, or video has no captions)
+    2  — youtube-transcript-api not installed (Tier 2 fallback unavailable)
+    3  — all configured fetch tiers failed (likely no captions, or IP-blocked w/o proxy)
     4  — cache miss in --cache-only mode (operator should fetch on residential IP)
 """
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import re
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime
 from urllib.parse import parse_qs, urlparse
 
@@ -114,7 +124,31 @@ def list_cached() -> list[dict]:
     return items
 
 
+def fetch_via_proxy(video_id: str, lang: str) -> str | None:
+    """Tier 2c: Cloudflare Worker proxy. Returns None if unconfigured/failed."""
+    proxy_url = os.environ.get("BOCHI_YT_PROXY_URL", "").rstrip("/")
+    if not proxy_url:
+        return None
+    token = os.environ.get("BOCHI_YT_PROXY_TOKEN", "")
+    req_url = f"{proxy_url}/?id={video_id}&lang={lang}"
+    headers = {"User-Agent": "bochi-fetch-yt-transcript/2.0"}
+    if token:
+        headers["X-Bochi-Token"] = token
+    req = urllib.request.Request(req_url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")[:200]
+        sys.stderr.write(f"[Tier 2c proxy] HTTP {e.code}: {body}\n")
+        return None
+    except Exception as e:
+        sys.stderr.write(f"[Tier 2c proxy] {type(e).__name__}: {e}\n")
+        return None
+
+
 def fetch_via_api(video_id: str, lang: str) -> str:
+    """Tier 2: direct youtube-transcript-api (residential IP only)."""
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
     except ImportError:
@@ -173,24 +207,38 @@ def main() -> int:
         )
         return 4
 
-    # Tier 2: fetch (residential IP path)
-    sys.stderr.write(f"[fetching] {video_id} lang={lang}\n")
+    # Tier 2c: Cloudflare Worker proxy (preferred when configured — works on cloud IP)
+    if os.environ.get("BOCHI_YT_PROXY_URL"):
+        sys.stderr.write(f"[Tier 2c] proxy fetch {video_id} lang={lang}\n")
+        text = fetch_via_proxy(video_id, lang)
+        if text:
+            write_cache(video_id, text, source="cloudflare-worker-proxy", lang=lang)
+            sys.stderr.write(f"[fetched via proxy + cached] {video_id} ({len(text)} chars)\n")
+            sys.stdout.write(text)
+            return 0
+        sys.stderr.write("[Tier 2c] proxy failed; falling through to Tier 2\n")
+
+    # Tier 2: direct youtube-transcript-api (residential IP only)
+    sys.stderr.write(f"[Tier 2] direct fetch {video_id} lang={lang}\n")
     try:
         text = fetch_via_api(video_id, lang)
     except Exception as e:
         msg = f"{type(e).__name__}: {e}"
-        sys.stderr.write(f"[fetch failed] {msg}\n")
+        sys.stderr.write(f"[Tier 2 failed] {msg}\n")
         if "RequestBlocked" in msg or "IpBlocked" in msg:
             sys.stderr.write(
                 "  This is the documented cloud-IP block "
                 "(github.com/jdepoix/youtube-transcript-api/issues/79).\n"
-                "  Solution: run this command on a residential IP machine "
-                "(your home Mac), and the cache will sync via S3 within minutes.\n"
+                "  Solutions:\n"
+                "    (a) Set BOCHI_YT_PROXY_URL + BOCHI_YT_PROXY_TOKEN to use the\n"
+                "        Cloudflare Worker proxy (see worker/transcript-proxy/README.md).\n"
+                "    (b) Run this command on a residential IP machine (Mac at home);\n"
+                "        the cache will sync via S3 within minutes.\n"
             )
         return 3
 
     write_cache(video_id, text, source="youtube-transcript-api", lang=lang)
-    sys.stderr.write(f"[fetched + cached] {video_id} ({len(text)} chars)\n")
+    sys.stderr.write(f"[Tier 2 fetched + cached] {video_id} ({len(text)} chars)\n")
     sys.stdout.write(text)
     return 0
 

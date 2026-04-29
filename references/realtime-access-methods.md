@@ -47,12 +47,17 @@ with a **shared cache that syncs via S3** and a residential-IP fetcher.
 Tier 1 — instant, free, works everywhere (including cloud IPs):
   Read ~/bochi-data/transcripts/<video_id>.txt
         ↓ miss
+Tier 2c — Cloudflare Worker proxy (optional, configured via env vars):
+  Worker fetches YouTube on its edge IP (not blocked) → returns text
+  Free 100k req/day; works directly from Lightsail/cloud bot
+  Setup: see worker/transcript-proxy/README.md
+        ↓ unconfigured / proxy down
 Tier 2 — residential IP only (Mac at home):
   Fetch via youtube-transcript-api → write cache → return
   Cache syncs S3 → all bot environments via existing safety-push (5min)
-        ↓ cache-only mode hit
+        ↓ cache-only mode hit (no proxy, no residential IP)
 Tier 3 — cloud IP, cache miss:
-  Exit 4 with operator instruction (run on residential IP)
+  Exit 4 with operator instruction (run on residential IP, or set up Tier 2c)
 ```
 
 #### One-time setup (residential IP machine)
@@ -104,6 +109,41 @@ This pattern is the standard cache-first / residential-fetch architecture
 adopted across the open-source community for the documented cloud-IP block
 (see Webshare proxies for the paid alternative — `youtube-transcript-api`
 ships with built-in `WebshareProxyConfig` support).
+
+#### Tier 2c setup — Cloudflare Worker proxy (free, recommended for bots)
+
+A tiny stateless Worker (~80 lines) that fetches YouTube transcripts on
+behalf of cloud-IP-blocked clients. Cloudflare's edge IP is not on
+YouTube's block list, so the Worker can reach what AWS/GCP/Azure cannot.
+
+Source: `worker/transcript-proxy/index.js`
+
+Quick deploy (Cloudflare Dashboard, ~5 min):
+
+1. Cloudflare → Workers & Pages → Create Worker → name e.g. `bochi-yt-transcript`
+2. Edit Code → paste `worker/transcript-proxy/index.js` → Save and Deploy
+3. Settings → Variables → add encrypted `WORKER_SHARED_SECRET` (e.g. `openssl rand -hex 24`)
+4. Copy Worker URL (e.g. `https://bochi-yt-transcript.<account>.workers.dev`)
+
+Wire into the bot host (`~/.claude/channels/discord/.env`):
+
+```bash
+BOCHI_YT_PROXY_URL=https://bochi-yt-transcript.<account>.workers.dev
+BOCHI_YT_PROXY_TOKEN=<your-secret>
+```
+
+`scripts/fetch_yt_transcript.py` automatically detects these env vars and
+prefers Tier 2c whenever the cache misses, falling back to Tier 2 only if
+the proxy is unreachable. No code change needed on the bot.
+
+Verify:
+
+```bash
+curl -s -H "X-Bochi-Token: $BOCHI_YT_PROXY_TOKEN" \
+  "$BOCHI_YT_PROXY_URL/?id=zjkBMFhNj_g&lang=en" | head -3
+```
+
+Cost: free tier (100k req/day) is far above bochi's needs.
 
 ---
 
