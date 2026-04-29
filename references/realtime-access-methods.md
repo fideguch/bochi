@@ -47,18 +47,24 @@ with a **shared cache that syncs via S3** and a residential-IP fetcher.
 Tier 1 — instant, free, works everywhere (including cloud IPs):
   Read ~/bochi-data/transcripts/<video_id>.txt
         ↓ miss
-Tier 2c — Cloudflare Worker proxy (optional, configured via env vars):
-  Worker fetches YouTube on its edge IP (not blocked) → returns text
-  Free 100k req/day; works directly from Lightsail/cloud bot
-  Setup: see worker/transcript-proxy/README.md
-        ↓ unconfigured / proxy down
 Tier 2 — residential IP only (Mac at home):
   Fetch via youtube-transcript-api → write cache → return
   Cache syncs S3 → all bot environments via existing safety-push (5min)
-        ↓ cache-only mode hit (no proxy, no residential IP)
+        ↓ cache-only mode hit (no residential IP path available)
 Tier 3 — cloud IP, cache miss:
-  Exit 4 with operator instruction (run on residential IP, or set up Tier 2c)
+  Exit 4 with operator instruction (run on residential IP)
 ```
+
+> **Note on Tier 2c (Cloudflare Worker proxy):**
+> The `worker/transcript-proxy/` Worker exists in the repo and is deployable,
+> but as of **2026-04** YouTube blocks Cloudflare's egress IPs the same way
+> it blocks AWS/GCP/Azure. Verified empirically by trying the ANDROID, WEB,
+> and TVHTML5 Innertube clients — all returned `LOGIN_REQUIRED` /
+> `Precondition check failed` / `ERROR` from Cloudflare.
+> The Worker is kept in the tree for two reasons: (1) future YouTube policy
+> may relax, (2) it can be combined with a residential proxy (Webshare,
+> Bright Data) or a third-party API (Supadata) to become operational at
+> non-zero cost. Until then, **rely on Tier 1 + Tier 2 (Mac fetch)**.
 
 #### One-time setup (residential IP machine)
 
@@ -82,8 +88,34 @@ python3 scripts/fetch_yt_transcript.py --no-cache <url_or_id>
 python3 scripts/fetch_yt_transcript.py --list-cached
 ```
 
-A 10-minute video yields ~10k chars. Pipe into a sub-agent for summarisation
-when long.
+A 10-minute video yields ~10k chars. **Always pipe long transcripts into
+a sub-agent for summarisation** — see "Sub-agent summarisation pattern"
+below. Do NOT cite long transcripts verbatim in Phase E output.
+
+#### Sub-agent summarisation pattern (recommended for any video > 3 min)
+
+Adopted from `pokemon-champions/references/data_extraction_guide.md` §4.
+
+```
+1. Channel-level filtering (RSS → titles)
+   ─ Fetch the channel feed (Method 1 Step 2)
+   ─ Filter to titles matching the user's idea keywords
+2. Title hit ⇒ fetch the transcript (Method 1 Step 3)
+3. Dispatch a `general-purpose` sub-agent with the transcript:
+   ─ Prompt: "Summarise this YouTube transcript for the question
+     '<user idea>'. Extract: thesis, 3 supporting claims, the speaker's
+     evidence type (data / experience / opinion), 1 counter-position
+     mentioned. Cite by minute marker if present."
+4. Score the summary against E-E-A-T criteria — the speaker's reputation
+   and the transcript's evidence type drive the score. Apply the
+   format cap from quality-criteria.md (video+transcript ≤ 36/40).
+5. Use the summary as a "why is this idea trending / what do practitioners
+   actually say" signal — NOT as numerical ground truth.
+```
+
+Why a sub-agent and not direct reading: long transcripts blow up the main
+context budget and dilute the ReAct loop's focus. A sub-agent returns
+~300-character structured digest you can act on.
 
 #### Storage layout
 
@@ -110,40 +142,29 @@ adopted across the open-source community for the documented cloud-IP block
 (see Webshare proxies for the paid alternative — `youtube-transcript-api`
 ships with built-in `WebshareProxyConfig` support).
 
-#### Tier 2c setup — Cloudflare Worker proxy (free, recommended for bots)
+#### Tier 2c — Cloudflare Worker proxy (currently inactive, kept for future)
 
-A tiny stateless Worker (~80 lines) that fetches YouTube transcripts on
-behalf of cloud-IP-blocked clients. Cloudflare's edge IP is not on
-YouTube's block list, so the Worker can reach what AWS/GCP/Azure cannot.
+A stateless Worker (`worker/transcript-proxy/index.js`) was built to let
+cloud-hosted bots fetch transcripts directly. As of **2026-04** YouTube
+blocks Cloudflare's egress the same way it blocks AWS — verified by
+testing ANDROID / WEB / TVHTML5 Innertube clients (all rejected). The
+Worker code is preserved because:
 
-Source: `worker/transcript-proxy/index.js`
+- A residential proxy add-on (Webshare ≈ $1/mo) makes it instantly viable
+- Future YouTube policy changes may re-enable direct edge access
+- The same code can be repointed at a paid third-party (Supadata, etc.)
 
-Quick deploy (Cloudflare Dashboard, ~5 min):
-
-1. Cloudflare → Workers & Pages → Create Worker → name e.g. `bochi-yt-transcript`
-2. Edit Code → paste `worker/transcript-proxy/index.js` → Save and Deploy
-3. Settings → Variables → add encrypted `WORKER_SHARED_SECRET` (e.g. `openssl rand -hex 24`)
-4. Copy Worker URL (e.g. `https://bochi-yt-transcript.<account>.workers.dev`)
-
-Wire into the bot host (`~/.claude/channels/discord/.env`):
+If the operator chooses to revive Tier 2c in any of those modes, set the
+two env vars on the bot host:
 
 ```bash
-BOCHI_YT_PROXY_URL=https://bochi-yt-transcript.<account>.workers.dev
-BOCHI_YT_PROXY_TOKEN=<your-secret>
+BOCHI_YT_PROXY_URL=https://<your-worker>.workers.dev
+BOCHI_YT_PROXY_TOKEN=<shared-secret>
 ```
 
-`scripts/fetch_yt_transcript.py` automatically detects these env vars and
-prefers Tier 2c whenever the cache misses, falling back to Tier 2 only if
-the proxy is unreachable. No code change needed on the bot.
-
-Verify:
-
-```bash
-curl -s -H "X-Bochi-Token: $BOCHI_YT_PROXY_TOKEN" \
-  "$BOCHI_YT_PROXY_URL/?id=zjkBMFhNj_g&lang=en" | head -3
-```
-
-Cost: free tier (100k req/day) is far above bochi's needs.
+`scripts/fetch_yt_transcript.py` will automatically prefer Tier 2c when
+both vars are set; otherwise it falls through to Tier 2 / Tier 3 as
+documented above. No code change needed.
 
 ---
 

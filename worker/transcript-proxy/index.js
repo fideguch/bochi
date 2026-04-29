@@ -1,36 +1,45 @@
 /**
- * Cloudflare Worker — bochi YouTube transcript proxy
+ * Cloudflare Worker — bochi YouTube transcript proxy (Innertube API edition)
  *
- * Fetches transcripts on behalf of cloud-IP-blocked clients (e.g., the
- * Lightsail bot whose AWS IP is blanket-blocked by YouTube).
+ * Fetches transcripts on behalf of cloud-IP-blocked clients (Lightsail bot
+ * etc.) by calling YouTube's internal Innertube API rather than scraping
+ * the public watch page (which now serves a stub HTML to most non-residential
+ * IPs, including Cloudflare's edge).
  *
- * Cloudflare's egress IP is not on YouTube's cloud-IP block list, so this
- * Worker can reach YouTube where the bot cannot.
+ * Strategy: pose as the official Android YouTube app — same approach used
+ * by pytubefix and yt-dlp. Innertube returns captionTracks directly in JSON.
  *
  * Endpoint:
- *   GET /?id=<video_id>&lang=<lang_code>
- *   GET /?url=<https://www.youtube.com/watch?v=...>&lang=<lang_code>
+ *   GET /?id=<video_id>&lang=<lang>
+ *   GET /?url=<watch_url>&lang=<lang>
+ *   GET /?id=<id>&lang=<lang>&debug=1   — diagnostic JSON instead of text
  *
- * Optional auth:
- *   If WORKER_SHARED_SECRET is set as a Worker secret/var, requests must
- *   include matching `X-Bochi-Token: <secret>` header (recommended for
- *   public Worker URLs to prevent abuse / cost).
+ * Auth (recommended for public Worker URLs):
+ *   X-Bochi-Token: <WORKER_SHARED_SECRET>
  *
- * Response:
- *   200 text/plain — transcript text (one cue per line)
- *   400 — invalid/missing input
+ * Status codes:
+ *   200 — text/plain transcript
+ *   400 — invalid input
  *   401 — bad/missing token
- *   404 — no captions or no language match
- *   502 — upstream YouTube error
+ *   404 — captions truly not present
+ *   502 — upstream Innertube error
  *
- * Deploy:
- *   1. Cloudflare Dashboard → Workers & Pages → Create Worker
- *   2. Edit Code → paste this file → Save and Deploy
- *   3. (recommended) Settings → Variables → add `WORKER_SHARED_SECRET`
- *      as encrypted variable
- *   4. Copy the Worker URL (e.g., https://bochi-yt.<account>.workers.dev/)
- *   5. Set BOCHI_YT_PROXY_URL + BOCHI_YT_PROXY_TOKEN on the bot host
+ * Deploy: see ../README.md
  */
+
+// Public Innertube API key used by the YouTube web client.
+const INNERTUBE_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
+
+// TVHTML5_SIMPLY_EMBEDDED_PLAYER — the client yt-dlp uses to bypass
+// signature-required and bot-detection paths. Does not require login.
+const CLIENT = {
+  clientName: "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
+  clientVersion: "2.0",
+  hl: "en",
+  gl: "US",
+  userAgent:
+    "Mozilla/5.0 (PlayStation; PlayStation 4/12.00) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
+};
 
 export default {
   async fetch(request, env) {
@@ -45,65 +54,104 @@ export default {
       }
     }
 
-    // Resolve video_id from either ?id= or ?url=
     let videoId = url.searchParams.get("id");
     const watchUrlParam = url.searchParams.get("url");
-    if (!videoId && watchUrlParam) {
-      videoId = extractVideoId(watchUrlParam);
-    }
+    if (!videoId && watchUrlParam) videoId = extractVideoId(watchUrlParam);
     if (!videoId || !/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
       return new Response("invalid or missing video id", { status: 400 });
     }
     const lang = (url.searchParams.get("lang") || "en").toLowerCase();
+    const debug = url.searchParams.get("debug") === "1";
 
+    let player;
     try {
-      const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
-      const html = await fetch(watchUrl, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-          "Accept-Language": "en-US,en;q=0.9",
-        },
-      }).then((r) => r.text());
-
-      const tracksMatch = html.match(/"captionTracks":(\[[^\]]*\])/);
-      if (!tracksMatch) {
-        return new Response("no captions available for this video", {
-          status: 404,
-        });
-      }
-      const tracks = JSON.parse(tracksMatch[1]);
-
-      // language fallback chain
-      const track =
-        tracks.find((t) => t.languageCode === lang) ||
-        tracks.find((t) => t.languageCode.startsWith(lang)) ||
-        tracks.find((t) => t.languageCode === "en") ||
-        tracks[0];
-      if (!track || !track.baseUrl) {
-        return new Response("no matching language track", { status: 404 });
-      }
-
-      const xml = await fetch(track.baseUrl).then((r) => r.text());
-      const cues = [...xml.matchAll(/<text[^>]*>([^<]*)<\/text>/g)];
-      const text = cues
-        .map((m) => decodeEntities(m[1]))
-        .filter(Boolean)
-        .join("\n");
-
-      return new Response(text, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "X-Lang": track.languageCode,
-          "X-Source": "cloudflare-worker-bochi-transcript-proxy/1.0",
-          "Cache-Control": "public, max-age=86400",
-        },
-      });
+      player = await fetchPlayer(videoId);
     } catch (e) {
       return new Response(`upstream error: ${e && e.message}`, { status: 502 });
     }
+
+    const tracks =
+      player?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+    if (debug) {
+      return new Response(
+        JSON.stringify(
+          {
+            videoId,
+            playabilityStatus: player?.playabilityStatus?.status,
+            videoTitle: player?.videoDetails?.title,
+            availableLangs: tracks.map((t) => t.languageCode),
+            track_count: tracks.length,
+          },
+          null,
+          2,
+        ),
+        { headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    if (tracks.length === 0) {
+      return new Response("no captions available for this video", {
+        status: 404,
+      });
+    }
+
+    const track =
+      tracks.find((t) => t.languageCode === lang) ||
+      tracks.find((t) => t.languageCode.startsWith(lang)) ||
+      tracks.find((t) => t.languageCode === "en") ||
+      tracks[0];
+    if (!track || !track.baseUrl) {
+      return new Response("no matching language track", { status: 404 });
+    }
+
+    let xml;
+    try {
+      xml = await fetch(track.baseUrl).then((r) => r.text());
+    } catch (e) {
+      return new Response(`caption fetch failed: ${e && e.message}`, {
+        status: 502,
+      });
+    }
+
+    const cues = [...xml.matchAll(/<text[^>]*>([^<]*)<\/text>/g)];
+    const text = cues
+      .map((m) => decodeEntities(m[1]))
+      .filter(Boolean)
+      .join("\n");
+
+    return new Response(text, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "X-Lang": track.languageCode,
+        "X-Source": "cloudflare-worker-bochi-transcript-proxy/2.0-innertube",
+        "Cache-Control": "public, max-age=86400",
+      },
+    });
   },
 };
+
+async function fetchPlayer(videoId) {
+  const url = `https://www.youtube.com/youtubei/v1/player?key=${INNERTUBE_KEY}`;
+  const body = { context: { client: CLIENT }, videoId };
+  const r = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent": CLIENT.userAgent,
+      "X-Youtube-Client-Name": "85",
+      "X-Youtube-Client-Version": CLIENT.clientVersion,
+      "Accept-Language": "en-US,en;q=0.9",
+      Origin: "https://www.youtube.com",
+      Referer: "https://www.youtube.com/",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const t = await r.text().catch(() => "");
+    throw new Error(`Innertube ${r.status}: ${t.slice(0, 1500)}`);
+  }
+  return r.json();
+}
 
 function extractVideoId(value) {
   if (/^[A-Za-z0-9_-]{11}$/.test(value)) return value;
