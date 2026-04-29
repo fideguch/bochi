@@ -1,4 +1,4 @@
-# bochi v2.4 — PM Companion
+# bochi v2.5 — PM Companion
 
 アイデアの種（メモ・URL・ひらめき）を「構造化された仮説」に変換し、日々のPM活動を支えるコンパニオン Claude Code スキル。
 
@@ -10,15 +10,22 @@ bochiは「PMの思考をどこからでもアクセスできるハブ」。
 2. **S3データハブ**: bochi-data → S3 → 全環境同期。データは常に最新
 3. **能動的メモ保存**: 価値ある会話はbochiが保存を提案する。ユーザーの「メモして」を待たない
 
-## What's New in v2.4
+## What's New in v2.5 (2026-04-30) — Multimedia Research Expansion
 
-- **Edge Cases全spec完備**: 全14 specファイルにEdge Casesセクション追加（v2.3の5/14→14/14）
-- **SKILL.md DRY完成**: Mode 2-7重複テーブル削除（329→350行）
-- **Session Continuity Protocol**: 6h再起動後のコンテキスト回復手順（fetch_messages, profile先行読み, open memo surfacing）
-- **49シナリオテスト**: Edge Caseテスト2件追加 + RS-03差別化（47→49）
+- **YouTube/X リアルタイム連携**: Mode 1 Phase C の ReAct ループが YouTube RSS と X (Nitter RSS) を扱えるように。動画字幕は `scripts/fetch_yt_transcript.py` で取得し、`~/bochi-data/transcripts/` にキャッシュして全環境で共有。
+- **動画/SNS 専用 E-E-A-T format cap**: 単独ツイート 24/40, スレッド 32/40, 動画+字幕 36/40, 記事 cap なし。鮮度ボーナス (+2/0/−2)。SNS-only 結論は "preliminary" タグ必須。
+- **サブエージェント要約パターン**: 3分超の動画は `general-purpose` サブエージェントに要約依頼してから利用。pokemon-champions スキルから取り込み。
+- **Phase D Check #6**: Video/SNS hygiene (記事ペア必須、ISO 鮮度、transcript 引用箇所明示)。
+- **trusted-domains に YT/X allowlist**: Lenny's Podcast, YCombinator, Anthropic, @karpathy, @sama 等。
+- **Bot deploy 改善**: setup-cron 冪等再構築、health-check の idle-listening 認識、tmux-start の stale lock inode リセット。
+- **毎朝 Discord 新聞配信**: `0 23 * * *` UTC (= 8:00 JST) で当日の朝刊が自動的に Discord DM に届く。記事カード形式、URL embed 抑制でモバイル読みやすさ最適化。
 
 <details>
-<summary>v2.0-v2.3 の変更</summary>
+<summary>v2.0-v2.4 の変更</summary>
+
+### v2.4 — Edge Case Completeness + DRY
+
+- 全14 specのEdge Cases完備, SKILL.md DRY, Session Continuity Protocol, 49シナリオテスト
 
 ### v2.3 — Thinking Hub + Quality
 

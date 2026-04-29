@@ -2,6 +2,66 @@
 
 All notable changes to bochi are documented here.
 
+## v2.5 (2026-04-30) — Multimedia Research Expansion
+
+### Added
+
+- **YouTube/X real-time sources in Mode 1 Phase C** (`references/realtime-access-methods.md`):
+  YouTube channel `@handle` → channelId → RSS, X via `nitter.net/<user>/rss`,
+  with verified-channel allowlist (`references/learned-channels.md`) mirroring
+  the `learned-sources.md` curation pattern.
+- **Format-specific E-E-A-T caps for video/SNS** (`references/quality-criteria.md`):
+  single tweet 24/40, thread 32/40, video+transcript 36/40, article uncapped;
+  freshness bonus (+2/0/−2 by hours since publish).
+- **Phase D check #6** (`references/critique-checklist.md`): Video/SNS hygiene —
+  written-source pairing required, ISO publish timestamp, transcript citation.
+- **Cache-first transcript pipeline** (`scripts/fetch_yt_transcript.py`): solves
+  the documented YouTube cloud-IP block (jdepoix/youtube-transcript-api#79).
+  Tier 1 reads `~/bochi-data/transcripts/<id>.txt`; Tier 2 fetches on
+  residential IP and writes the cache; Tier 3 emits an operator instruction
+  on cache miss. Cache syncs to all bot environments via the existing
+  bochi-data → S3 pipeline.
+- **Sub-agent summarisation pattern**: any video > 3 min must be summarised by
+  a `general-purpose` sub-agent before being used as a Phase C signal —
+  saves main context budget, treats video as "why is this trending" signal
+  rather than numerical ground truth (adopted from pokemon-champions skill).
+- **Cloudflare Worker proxy stub** (`worker/transcript-proxy/`): inactive in
+  the current YouTube anti-bot environment (Innertube ANDROID/WEB/TVHTML5
+  all rejected from Cloudflare edge as of 2026-04). Kept in tree because
+  combining it with a residential proxy or a third-party API revives it
+  with no code change. Operator env vars `BOCHI_YT_PROXY_URL` +
+  `BOCHI_YT_PROXY_TOKEN` enable Tier 2c when ready.
+
+### Changed
+
+- **`references/idea-expansion-spec.md`** Phase C Action step now branches
+  into 2a WebSearch / 2b Context7 / 2c YouTube+X (signal-triggered).
+- **`references/trusted-domains.md`** adds curated YouTube + X allowlists.
+- **`references/research-strategy.md`** adds YouTube/X cross-domain strategy
+  with explicit "when NOT to bother" guidance.
+- **`references/output-template.md`** documents how to record video/SNS
+  freshness and the `preliminary` tag for SNS-only conclusions.
+
+### Fixed
+
+- **`deploy/setup-cron.sh`**: removed legacy `--trigger` cron entries
+  (the flag does not exist in Claude Code CLI; `bochi-daily` /
+  `bochi-prefetch` are managed via RemoteTrigger API now). Idempotent
+  rebuild strategy. S3 sync cron entries added. @reboot path auto-fix.
+- **`deploy/bochi-health-check.sh`**: pass shell variables to embedded
+  Python via `os.environ` (no quoting bugs); recognise the
+  "Listening for channel messages" + prompt state as healthy idle to
+  prevent false unresponsive detection.
+- **`deploy/bochi-tmux-start.sh`**: `clean_stale_lock()` resets the lock
+  inode atomically via `mv` (releases stale flock holders);
+  flock timeout reduced 120s → 30s.
+
+### Operations
+
+- Daily Discord newspaper delivery cron (`deploy/send-newspaper-to-discord.py`)
+  scheduled `0 23 * * *` UTC = 8:00 JST. Mobile-friendly card format,
+  embed-suppressed URLs, 1900-char chunks per `access.json textChunkLimit`.
+
 ## v2.4 (2026-03-28) — Edge Case Completeness + DRY
 
 ### Added

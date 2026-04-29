@@ -1,4 +1,4 @@
-# bochi v2.4 — PM Companion
+# bochi v2.5 — PM Companion
 
 A Claude Code skill that transforms idea seeds (memos, URLs, sparks) into structured hypotheses and supports daily PM activities as a thinking companion.
 
@@ -10,15 +10,36 @@ bochi is a "thinking hub accessible from anywhere" for PMs.
 2. **S3 Data Hub**: bochi-data → S3 → all environments synced. Data is always current
 3. **Proactive Memo Save**: bochi proposes saving valuable conversations without waiting for "save this"
 
-## What's New in v2.4
+## What's New (2026-04-30) — Multimedia Research Expansion
 
-- **Edge Cases Complete**: All 14 spec files now have Edge Cases sections (v2.3: 5/14 → 14/14)
-- **SKILL.md DRY Complete**: Mode 2-7 duplicate table removed (329 → 350 lines)
-- **Session Continuity Protocol**: 6h restart recovery with fetch_messages, profile preload, open memo surfacing
-- **49 Scenario Tests**: 2 Edge Case tests added + RS-03 differentiated (47 → 49)
+### Mode 1 Phase C extends to YouTube and X (PR #3, #4, #7)
+
+- **YouTube/X real-time sources** are now first-class in the Phase C ReAct loop. YouTube via `@handle` → channelId → RSS; X via `nitter.net/<user>/rss`. Verified channels and accounts are append-only-curated in `references/learned-channels.md` (mirrors `learned-sources.md`).
+- **Format-specific E-E-A-T caps for video/SNS**: single tweet 24/40, thread 32/40, video+transcript 36/40, articles uncapped. Freshness bonus ±2 by hours since publish. SNS-only conclusions carry a `preliminary` tag.
+- **Phase D Check #6 — Video/SNS hygiene**: written-source pairing required, ISO publish timestamp, transcript citation, >72h flagged as stale.
+- **Cache-first transcript pipeline**: structurally solves YouTube's blanket block of cloud-provider IPs (AWS/GCP/Azure). `~/bochi-data/transcripts/<id>.txt` is the shared cache; Mac (residential IP) fetches → S3 sync → all bot environments read it. `scripts/fetch_yt_transcript.py` runs cache-first on every host.
+- **Sub-agent summarisation pattern** (adopted from pokemon-champions skill): videos longer than ~3 minutes are summarised by a `general-purpose` sub-agent before being treated as a Phase C signal — used as "why is this trending / practitioner take," not as numerical ground truth.
+
+### Bot operations improvements (PR #5)
+
+- `deploy/setup-cron.sh` switched to an **idempotent rebuild** strategy. Removes legacy `--trigger` cron entries (the flag was removed from Claude Code CLI). Adds S3 sync cron entries, auto-fixes the @reboot path.
+- `deploy/bochi-health-check.sh` passes shell variables to its embedded Python via `os.environ` (no quoting bugs on special-character paths). Recognises `Listening for channel messages` + prompt as a **healthy idle state** to prevent false unresponsive detection.
+- `deploy/bochi-tmux-start.sh` adds `clean_stale_lock()` that atomically resets the lock inode via `mv`, releasing stale flock holders. flock timeout reduced 120s → 30s.
+
+### Daily Discord newspaper delivery (PR #5)
+
+- `deploy/send-newspaper-to-discord.py` runs `0 23 * * *` UTC = **8:00 JST every morning**, delivering the day's curated brief to the Discord DM. Article-card format, embed-suppressed URLs for clean mobile reading, chunks at the 1900-char limit from `access.json` `textChunkLimit`.
+
+### Future-ready: Cloudflare Worker proxy (PR #6 → inactive in PR #7)
+
+- `worker/transcript-proxy/` keeps an Innertube-based Worker. YouTube extended its bot detection to Cloudflare edge IPs in 2026, so the Worker is **currently inactive**, but it can be revived without code change by combining with a residential proxy or a third-party API (Supadata) — set `BOCHI_YT_PROXY_URL` and `BOCHI_YT_PROXY_TOKEN` and Tier 2c activates automatically.
 
 <details>
-<summary>v2.0-v2.3 changes</summary>
+<summary>v2.0-v2.4 changes</summary>
+
+### v2.4 — Edge Case Completeness + DRY
+
+- All 14 spec files have Edge Cases, SKILL.md DRY, Session Continuity Protocol, 49 scenario tests
 
 ### v2.3 — Thinking Hub + Quality
 
