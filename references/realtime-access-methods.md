@@ -33,18 +33,77 @@ WebFetch URL: https://www.youtube.com/feeds/videos.xml?channel_id=<UC_ID>
 
 Returns title, publish date, and video URL. Sort by date for freshness.
 
-### Step 3: read the transcript (no auth, no scraping)
+### Step 3: read the transcript (cache-first tiered fallback)
+
+YouTube blanket-blocks **most cloud-provider IPs** (AWS / GCP / Azure) — see
+[jdepoix/youtube-transcript-api#79](https://github.com/jdepoix/youtube-transcript-api/issues/79).
+Naïvely calling the API from Lightsail or any cloud-hosted bot environment
+will fail with `RequestBlocked` / `IpBlocked`. The bochi helper solves this
+with a **shared cache that syncs via S3** and a residential-IP fetcher.
+
+#### Architecture
+
+```
+Tier 1 — instant, free, works everywhere (including cloud IPs):
+  Read ~/bochi-data/transcripts/<video_id>.txt
+        ↓ miss
+Tier 2 — residential IP only (Mac at home):
+  Fetch via youtube-transcript-api → write cache → return
+  Cache syncs S3 → all bot environments via existing safety-push (5min)
+        ↓ cache-only mode hit
+Tier 3 — cloud IP, cache miss:
+  Exit 4 with operator instruction (run on residential IP)
+```
+
+#### One-time setup (residential IP machine)
 
 ```bash
-# One-time install
 pip3 install --user youtube-transcript-api
+```
 
-# Use the bochi helper
-python3 scripts/fetch_yt_transcript.py <video_url_or_id> [lang]
+#### Usage
+
+```bash
+# Cache-first (recommended on bot environments)
+python3 scripts/fetch_yt_transcript.py --cache-only <url_or_id>
+
+# Cache-first, fall back to fetch if on residential IP
+python3 scripts/fetch_yt_transcript.py <url_or_id> [lang]
+
+# Bypass cache (force fetch — residential IP only)
+python3 scripts/fetch_yt_transcript.py --no-cache <url_or_id>
+
+# List what is cached right now
+python3 scripts/fetch_yt_transcript.py --list-cached
 ```
 
 A 10-minute video yields ~10k chars. Pipe into a sub-agent for summarisation
-when long, or read directly for short ones.
+when long.
+
+#### Storage layout
+
+```
+~/bochi-data/transcripts/
+├── <video_id>.txt          # plain transcript
+└── <video_id>.meta.json    # {"video_id","source","lang","chars","fetched_at"}
+```
+
+`transcripts/` is **Mac-owned** for writes (residential IP). Lightsail
+(cloud IP) reads only — its bochi-s3-push.sh exclude list does not need to
+change because the bot never writes here.
+
+#### Why this matters for Phase C
+
+When the Phase C ReAct loop needs to inspect a video's content (not just
+the title from RSS), it should call `--cache-only` first. If hit, the bot
+can reason over the full transcript in a single iteration. If miss, the
+bot surfaces the cache-miss to the user — who can fetch from their Mac
+(takes seconds) and the cache will arrive at Lightsail within ~5 min.
+
+This pattern is the standard cache-first / residential-fetch architecture
+adopted across the open-source community for the documented cloud-IP block
+(see Webshare proxies for the paid alternative — `youtube-transcript-api`
+ships with built-in `WebshareProxyConfig` support).
 
 ---
 
