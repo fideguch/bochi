@@ -73,6 +73,28 @@ setup_skill() {
   chmod 444 "$HOME/.claude/hooks/hooks.json" 2>/dev/null || true
 }
 
+# --- Stale lock cleanup ---
+# flock is advisory and bound to the inode, not the filename.
+# Deleting the file and recreating it gives us a fresh inode
+# that no stale process can hold. The stale process still holds
+# a lock on the old (deleted) inode, which is harmless.
+
+clean_stale_lock() {
+  if [ ! -f "$LOCKFILE" ]; then return 0; fi
+  # Try non-blocking flock to check if lock is free
+  if (flock -n 200) 200<>"$LOCKFILE" 2>/dev/null; then
+    return 0
+  fi
+  # Lock is held — atomic inode reset via mv (same filesystem = atomic rename).
+  # Even if two processes race here, mv ensures only one inode survives,
+  # and the subsequent flock correctly serializes access to it.
+  local new_lock="${LOCKFILE}.new.$$"
+  touch "$new_lock"
+  mv -f "$new_lock" "$LOCKFILE"
+  log_event "stale_lock_cleaned" "forced_inode_reset" "true"
+  return 0
+}
+
 # --- Process checks ---
 
 is_session_alive() {
@@ -250,21 +272,24 @@ ACTION="${1:-start}"
 
 case "$ACTION" in
   start)
+    clean_stale_lock
     (
-      flock -w 120 200 || { echo "ERROR: Could not acquire lock within 120s"; exit 1; }
+      flock -w 30 200 || { echo "ERROR: Could not acquire lock within 30s"; exit 1; }
       do_start "manual"
     ) 200>"$LOCKFILE"
     ;;
   restart)
     REASON="${2:-manual}"
+    clean_stale_lock
     (
-      flock -w 120 200 || { echo "ERROR: Could not acquire lock within 120s"; exit 1; }
+      flock -w 30 200 || { echo "ERROR: Could not acquire lock within 30s"; exit 1; }
       do_restart "$REASON"
     ) 200>"$LOCKFILE"
     ;;
   stop)
+    clean_stale_lock
     (
-      flock -w 120 200 || { echo "ERROR: Could not acquire lock within 120s"; exit 1; }
+      flock -w 30 200 || { echo "ERROR: Could not acquire lock within 30s"; exit 1; }
       do_stop
     ) 200>"$LOCKFILE"
     ;;

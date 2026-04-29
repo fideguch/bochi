@@ -1,13 +1,15 @@
 #!/bin/bash
-# bochi cron setup — configure RemoteTrigger schedules on Lightsail
-# Usage: ssh -i ~/.ssh/lightsail-bochi.pem ubuntu@54.249.49.69 'bash ~/bochi-skill/deploy/setup-cron.sh'
+# bochi cron setup — configure process management crons on Lightsail
+# Usage: ssh ubuntu@54.249.49.69 'bash ~/bochi-skill/deploy/setup-cron.sh'
 #
 # This script is IDEMPOTENT — safe to run multiple times.
-# It adds bochi cron entries only if they don't already exist.
+# It rebuilds the crontab from scratch to ensure correctness.
+#
+# NOTE: bochi-daily and bochi-prefetch are managed via RemoteTrigger API,
+# NOT via local cron. The --trigger flag does not exist in Claude Code CLI.
 set -euo pipefail
 
 CLAUDE_BIN="/usr/bin/claude"
-SKILL_DIR="/home/ubuntu/bochi-skill"
 
 echo "=== bochi Cron Setup ==="
 
@@ -17,65 +19,77 @@ if [ ! -x "$CLAUDE_BIN" ]; then
   exit 1
 fi
 
-# Build the cron entries
-# JST = UTC+9, so 08:00 JST = 23:00 UTC (previous day), 06:00 JST = 21:00 UTC (previous day)
-# --dangerously-skip-permissions is required for cron execution because:
-# cron runs non-interactively — there is no terminal for Claude Code's TUI approval prompts.
-# Without this flag, any Write/Edit tool call would hang waiting for user input.
-CRON_DAILY='0 23 * * * cd /home/ubuntu/bochi-skill && /usr/bin/claude --dangerously-skip-permissions --channels plugin:discord@claude-plugins-official --trigger bochi-daily 2>>/home/ubuntu/bochi-data/errors/cron.log'
-CRON_PREFETCH='0 21 * * * cd /home/ubuntu/bochi-skill && /usr/bin/claude --dangerously-skip-permissions --trigger bochi-prefetch 2>>/home/ubuntu/bochi-data/errors/cron.log'
+# Define the ONLY cron entries needed on Lightsail:
+# 1. @reboot: auto-start bochi via the full deploy script (with lock, setup, smoke checks)
+# 2. health check: monitor and auto-recover every 2 minutes
+# 3. S3 safety sync: fallback push/pull every 5 minutes
 CRON_REBOOT='@reboot sleep 10 && /home/ubuntu/bochi-skill/deploy/bochi-tmux-start.sh start'
 CRON_HEALTH='*/2 * * * * /home/ubuntu/bochi-skill/deploy/bochi-health-check.sh >> /home/ubuntu/bochi-data/errors/watchdog-cron.log 2>&1'
+CRON_S3_PULL='*/5 * * * * bash /home/ubuntu/.claude/scripts/hooks/bochi-s3-safety-pull.sh >> /home/ubuntu/bochi-data/errors/safety-sync.log 2>&1'
+CRON_S3_PUSH='*/5 * * * * bash /home/ubuntu/.claude/scripts/hooks/bochi-s3-safety-push.sh >> /home/ubuntu/bochi-data/errors/safety-sync.log 2>&1'
 
-# Get existing crontab (suppress "no crontab" error)
+# Get existing crontab
 EXISTING=$(crontab -l 2>/dev/null || true)
+CHANGES=0
 
-ADDED=0
-
-# Add bochi-daily if not present
-if echo "$EXISTING" | grep -q "bochi-daily"; then
-  echo "  SKIP: bochi-daily already configured"
-else
-  EXISTING=$(printf '%s\n%s' "$EXISTING" "$CRON_DAILY")
-  echo "  ADD: bochi-daily (08:00 JST / 23:00 UTC)"
-  ADDED=$((ADDED + 1))
+# --- Cleanup: remove legacy --trigger entries (managed by RemoteTrigger API now) ---
+if echo "$EXISTING" | grep -q "\-\-trigger"; then
+  echo "  CLEAN: Removing legacy --trigger cron entries (now managed by RemoteTrigger API)"
+  EXISTING=$(echo "$EXISTING" | grep -v "\-\-trigger")
+  CHANGES=$((CHANGES + 1))
 fi
 
-# Add bochi-prefetch if not present
-if echo "$EXISTING" | grep -q "bochi-prefetch"; then
-  echo "  SKIP: bochi-prefetch already configured"
-else
-  EXISTING=$(printf '%s\n%s' "$EXISTING" "$CRON_PREFETCH")
-  echo "  ADD: bochi-prefetch (06:00 JST / 21:00 UTC)"
-  ADDED=$((ADDED + 1))
+# --- Cleanup: fix @reboot if it points to the wrong script ---
+if echo "$EXISTING" | grep -q "@reboot" && ! echo "$EXISTING" | grep -q "bochi-skill/deploy/bochi-tmux-start.sh"; then
+  echo "  FIX: Updating @reboot to use full deploy script"
+  EXISTING=$(echo "$EXISTING" | grep -v "@reboot")
+  CHANGES=$((CHANGES + 1))
 fi
 
-# Ensure @reboot is present
-if echo "$EXISTING" | grep -q "bochi-tmux-start"; then
-  echo "  SKIP: @reboot already configured"
+# --- Ensure required entries exist ---
+
+if echo "$EXISTING" | grep -q "bochi-skill/deploy/bochi-tmux-start.sh"; then
+  echo "  OK: @reboot (full deploy script)"
 else
   EXISTING=$(printf '%s\n%s' "$EXISTING" "$CRON_REBOOT")
-  echo "  ADD: @reboot bot startup"
-  ADDED=$((ADDED + 1))
+  echo "  ADD: @reboot bot startup (full deploy script)"
+  CHANGES=$((CHANGES + 1))
 fi
 
-# Add health check if not present
 if echo "$EXISTING" | grep -q "bochi-health-check"; then
-  echo "  SKIP: health check already configured"
+  echo "  OK: health check"
 else
   EXISTING=$(printf '%s\n%s' "$EXISTING" "$CRON_HEALTH")
   echo "  ADD: health check (every 2 minutes)"
-  ADDED=$((ADDED + 1))
+  CHANGES=$((CHANGES + 1))
 fi
 
-if [ "$ADDED" -eq 0 ]; then
-  echo ""
-  echo "All cron entries already configured. No changes made."
+if echo "$EXISTING" | grep -q "bochi-s3-safety-pull"; then
+  echo "  OK: S3 safety pull"
 else
-  # Install updated crontab
+  EXISTING=$(printf '%s\n%s' "$EXISTING" "$CRON_S3_PULL")
+  echo "  ADD: S3 safety pull (every 5 minutes)"
+  CHANGES=$((CHANGES + 1))
+fi
+
+if echo "$EXISTING" | grep -q "bochi-s3-safety-push"; then
+  echo "  OK: S3 safety push"
+else
+  EXISTING=$(printf '%s\n%s' "$EXISTING" "$CRON_S3_PUSH")
+  echo "  ADD: S3 safety push (every 5 minutes)"
+  CHANGES=$((CHANGES + 1))
+fi
+
+# Remove blank lines and install
+EXISTING=$(echo "$EXISTING" | sed '/^$/d')
+
+if [ "$CHANGES" -eq 0 ]; then
+  echo ""
+  echo "All cron entries already correct. No changes made."
+else
   echo "$EXISTING" | crontab -
   echo ""
-  echo "$ADDED cron entries added."
+  echo "$CHANGES change(s) applied."
 fi
 
 # Ensure error log directory exists
