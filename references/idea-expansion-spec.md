@@ -32,23 +32,37 @@ Load: `references/expansion-framework.md`
 
 Load: `references/research-strategy.md`, `references/quality-criteria.md`,
       `references/trusted-domains.md`, `references/learned-sources.md`
+      (+ `references/realtime-access-methods.md`, `references/learned-channels.md`
+       when YouTube/X signals apply — see Action 2c below)
 
 ReAct（Thought → Action → Observation）パターンでリサーチするゆ。
 
 **Loop (max 5 iterations):**
 1. **Thought**: 「このアイデアの検証には〇〇の情報が必要ゆ」
-2. **Action**: WebSearch（ドメイン別戦略に従いクエリ生成）
-3. **Observation**: 結果をE-E-A-T 4軸で評価
+2. **Action** (記事だけに頼らないゆ):
+   - **2a. WebSearch** — ドメイン別戦略に従いクエリ生成、記事ソース取得
+   - **2b. Context7 MCP** — 技術系アイデアで library/framework が絡むとき
+   - **2c. YouTube / X (鮮度命のとき)** — 以下のシグナルで発火:
+     - 直近の発表/launch/IPO/policy 変更を扱う問い
+     - 一次関係者の語り (founder, researcher, GAFA PM) が記事より信頼度が高いトピック
+     - 取得手順: `realtime-access-methods.md` の Method 1/2 に従う
+       - YouTube: `@handle` → channelId → RSS → 必要なら `scripts/fetch_yt_transcript.py`
+       - X: `https://nitter.net/<user>/rss` を WebFetch
+     - 既知の高品質チャンネル/アカウントは `learned-channels.md` を参照
+3. **Observation**: 結果を E-E-A-T 4軸で評価
+   - 動画/SNS は `quality-criteria.md` の **Video / SNS Adjustments** にある format cap を必ず適用
 4. **Next Thought**: 足りない角度があれば追加検索
 
 **Research Rules:**
 - 最初の3検索クエリは**並列実行**する（response-speed-spec.md参照）
 - 結果依存の追加クエリのみ直列（最大2回）
-- trusted-domains.md のドメインを優先するが排他的ではない
-- learned-sources.md の既知高品質ソースも参照
+- trusted-domains.md のドメインを優先するが排他的ではない (YouTube/X セクションも含む)
+- learned-sources.md (URL) と learned-channels.md (YT/X) の既知高品質ソースを優先参照
 - 技術系アイデア → Context7 MCP（mcp__context7__query-docs）を併用。MCPが利用不可の場合はWebSearchで代替。Context7の有無で品質は変わるが動作は保証
 - WebFetch で上位候補の本文を取得し深く分析
+- 動画/SNS ソースは **必ず1件以上の記事ソースとペアにする** — SNS-only 結論は Phase E で "preliminary" タグ必須
 - 各ループのThought/Observationをユーザーに簡潔に提示
+- 動画/SNS を使った場合は `鮮度: <Xh>` と publish ISO timestamp を出力に併記
 
 ## Phase D: Critique — Self-Verification
 
