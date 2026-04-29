@@ -1,6 +1,6 @@
 name = "bochi-yt-transcript"
 main = "index.js"
-compatibility_date = "2026-04-30"
+compatibility_date = "2025-10-01"
 
 # Set this via:
 #   wrangler secret put WORKER_SHARED_SECRET
