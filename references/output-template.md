@@ -19,6 +19,10 @@
 | 2 | | [{domain}](URL) | /40 | |
 | 3 | | [{domain}](URL) | /40 | |
 
+> Video/SNS sources: append `(published YYYY-MM-DD, freshness <Xh>)` to the
+> Summary cell. SNS-only conclusions must carry the `preliminary` tag —
+> see `critique-checklist.md` #6.
+
 ### Related Articles (3)
 1. {1文要約} — [{domain}](URL) / E-E-A-T: /40
 2. ...
