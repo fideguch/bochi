@@ -33,3 +33,31 @@
 ## General (domain unknown)
 - Run 3 broad queries → auto-detect domain → switch to above strategy
 - Use multiple angles: problem-focused, solution-focused, market-focused
+
+---
+
+## YouTube / X Cross-Domain Strategy
+
+When the topic is fast-moving (model releases, platform policies, IPO/funding,
+launch retrospectives, conference talks), augment the WebSearch path with one
+YouTube query and one X query in parallel.
+
+### YouTube
+- Query pattern: `<topic> talk | interview | demo 2026 site:youtube.com`
+- Resolve a known channel handle → channelId → RSS:
+  `https://www.youtube.com/feeds/videos.xml?channel_id=<UC_ID>`
+- Pull transcript via `scripts/fetch_yt_transcript.py <video_url>` only when
+  the title alone is insufficient (saves tokens for short clips).
+
+### X (Nitter)
+- Query pattern: `https://nitter.net/<handle>/rss` for known practitioners,
+  or `site:x.com <topic>` via WebSearch for ad-hoc.
+- Threads (5+ posts) generally outscore single posts on E-E-A-T.
+
+### When NOT to bother
+- Static / academic topics (paper interpretation is the exception)
+- Topics older than 6 months — articles already aggregate the takes
+- Sensitive / private domains (HR, legal) — public SNS is rarely high-quality
+
+Reference: `realtime-access-methods.md` for full access protocol,
+`learned-channels.md` for verified channel/account inventory.

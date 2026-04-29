@@ -100,25 +100,37 @@ Load: `references/expansion-framework.md`
 
 Load: `references/research-strategy.md`, `references/quality-criteria.md`,
       `references/trusted-domains.md`, `references/learned-sources.md`
+      (+ `references/realtime-access-methods.md`, `references/learned-channels.md`
+       when YouTube/X signals apply — see Action 2c below)
 
 ReAct（Thought → Action → Observation）パターンでリサーチするゆ。
 
 ### Loop (max 5 iterations):
 1. **Thought**: 「このアイデアの検証には〇〇の情報が必要ゆ」
-2. **Action**: WebSearch（ドメイン別戦略に従いクエリ生成）
+2. **Action** (記事だけに頼らないゆ):
+   - **2a. WebSearch** — ドメイン別戦略に従いクエリ生成、記事ソース取得
+   - **2b. Context7 MCP** — 技術系アイデアで library/framework が絡むとき
+   - **2c. YouTube / X (鮮度命のとき)** — 以下のシグナルで発火:
+     - 直近の発表/launch/IPO/policy 変更を扱う問い
+     - 一次関係者の語り (founder, researcher, GAFA PM) が記事より信頼度が高いトピック
+     - 取得手順: `realtime-access-methods.md` の Method 1/2 に従う
+       - YouTube: `@handle` → channelId → RSS → 必要なら `scripts/fetch_yt_transcript.py`
+       - X: `https://nitter.net/<user>/rss` を WebFetch
+     - 既知の高品質チャンネル/アカウントは `learned-channels.md` を参照
 3. **Observation**: 結果をE-E-A-T 4軸（Experience/Expertise/Authoritativeness/Trustworthiness）で評価
+   - 動画/SNS は `quality-criteria.md` の **Video / SNS Adjustments** にある format cap を必ず適用
 4. **Next Thought**: 足りない角度があれば追加検索
 
 ### Research Rules:
-- trusted-domains.md のドメインを優先するが排他的ではない
-- learned-sources.md の既知高品質ソースも参照
-- 技術系アイデア → Context7 MCP（mcp__context7__query-docs）を併用
-- WebFetch で上位候補の本文を取得し深く分析
+- trusted-domains.md のドメインを優先するが排他的ではない (YouTube/X セクションも含む)
+- learned-sources.md (URL) と learned-channels.md (YT/X) の既知高品質ソースを優先参照
+- 動画/SNS ソースは **必ず1件以上の記事ソースとペアにする** — SNS-only 結論は Phase E で "preliminary" タグ必須
 - 各ループのThought/Observationをユーザーに簡潔に提示（透明性確保）
 
 ### Output:
-- 高品質ソース候補（E-E-A-Tスコア付き）
+- 高品質ソース候補（E-E-A-Tスコア付き、動画/SNS の場合は format cap 適用後）
 - 関連記事候補
+- 動画/SNS を使った場合は `鮮度: <Xh>` と publish ISO timestamp を併記
 
 ---
 
@@ -214,6 +226,14 @@ Load: `references/interview-handoff.md`
 | `interview-handoff.md` | Phase F handoff |
 | `feedback-log.md` | On FB append |
 | `learned-sources.md` | Phase C ref + append |
+| `realtime-access-methods.md` | Phase C — when YouTube/X signal applies |
+| `learned-channels.md` | Phase C — YT/X reference + append |
 
 **Do NOT pre-load all references at skill invocation.**
 Load only the references needed for the current phase.
+
+## Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/fetch_yt_transcript.py` | Auth-free YouTube transcript fetch (Phase C, on demand). Requires `pip3 install --user youtube-transcript-api`. |

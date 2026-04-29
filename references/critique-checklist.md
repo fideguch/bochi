@@ -22,6 +22,13 @@ All checks must pass before proceeding to Phase E.
 ## 5. Relevance
 - [ ] Each source's relevance to the idea scores >= 5/10
 
+## 6. Video / SNS Hygiene (only when YouTube/X sources are used)
+- [ ] At least one written source accompanies each video/SNS source
+  (SNS-only conclusions are marked "preliminary")
+- [ ] Format caps applied (per `quality-criteria.md` Video / SNS Adjustments)
+- [ ] Freshness recorded with publish ISO timestamp; > 72h marked "stale"
+- [ ] If transcript was fetched, summary cites which segments were used
+
 ## On Failure
 - Check 1-2 fail → return to Phase C for additional search (max 2 retries)
 - Check 3-5 fail → replace only the failing sources

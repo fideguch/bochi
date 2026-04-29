@@ -19,6 +19,10 @@
 | 2 | | | /40 | |
 | 3 | | | /40 | |
 
+> Video/SNS sources: append `(published YYYY-MM-DD, freshness <Xh>)` to the
+> Summary cell. SNS-only conclusions must carry the `preliminary` tag —
+> see `critique-checklist.md` #6.
+
 ### Related Articles (3)
 1. [Title](URL) — Why relevant / E-E-A-T: /40
 2. ...
