@@ -1,0 +1,7 @@
+history/
+feedback/learnings.md
+feedback/learnings-archive.md
+.cache/
+env
+*.key
+*.token

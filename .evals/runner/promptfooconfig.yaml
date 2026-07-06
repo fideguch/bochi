@@ -1,0 +1,38 @@
+# specs-evals — promptfoo runner template
+# Saved to .evals/runner/promptfooconfig.yaml. Run: npx promptfoo eval -c <this file>
+# promptfoo exits non-zero on assertion failure -> gates CI. Docs: https://www.promptfoo.dev/docs/
+#
+# SECURITY: API keys come from the environment (OPENAI_API_KEY / ANTHROPIC_API_KEY).
+# Never put a key in this file. Never interpolate untrusted dataset fields into javascript/python assertions.
+
+description: "specs-evals suite for <feature>"
+
+# Providers = the System Under Test (Track A) and/or the judge model.
+providers:
+  - id: anthropic:messages:claude-opus-4-8
+    config:
+      temperature: 0
+
+prompts:
+  - "{{input}}"
+
+# Dataset is externalized as JSONL (one record per line); see templates/dataset.jsonl.
+tests: file://../datasets/golden.jsonl
+
+# Shared assertions applied to every test (cheapest first: deterministic -> model-graded).
+defaultTest:
+  assert:
+    # --- deterministic (no model, no cost) ---
+    - type: is-json
+      # value: { required: ["answer"] }   # uncomment for schema check
+    # --- reference-based (only if a gold reference truly exists) ---
+    # - type: contains
+    #   value: "{{expected_output}}"
+    # --- model-graded (ONLY use a VALIDATED judge; binary rubric) ---
+    # - type: llm-rubric
+    #   value: "States the refund window is exactly 30 days."
+    #   provider: anthropic:messages:claude-opus-4-8   # judge != generator when possible
+
+# Cache judge calls for cheap, deterministic CI (set PROMPTFOO_CACHE_PATH in CI).
+# Output JSON + JUnit for history + standard CI reporters:
+#   npx promptfoo eval -c promptfooconfig.yaml -o ../history/run.json -o ../history/junit.xml

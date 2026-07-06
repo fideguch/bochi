@@ -1,0 +1,32 @@
+#!/bin/bash
+# pc-status — read-only machine overview for the Claude bridge.
+# Fixed command set; takes no arguments (LOLBIN-safe wrapper).
+set -uo pipefail
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+echo "== uptime =="
+uptime
+
+echo ""
+echo "== tmux sessions (user default socket) =="
+tmux ls 2>/dev/null || echo "(no default tmux server)"
+
+echo ""
+echo "== tmux sessions (claude-bridge socket) =="
+tmux -L claude-bridge ls 2>/dev/null || echo "(bridge tmux not running)"
+
+echo ""
+echo "== claude processes =="
+ps -eo pid,etime,command | grep -E "claude( |$)" | grep -v grep || echo "(none)"
+
+echo ""
+echo "== disk =="
+df -h / | tail -1
+
+echo ""
+echo "== power =="
+pmset -g batt 2>/dev/null | head -3
+
+echo ""
+echo "== top cpu (5) =="
+ps -Ao pid,pcpu,comm -r | head -6

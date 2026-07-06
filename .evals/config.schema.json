@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "specs-evals config",
+  "type": "object",
+  "required": ["version", "runner", "judge", "regression", "feedback"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "string", "description": "config schema version for migration" },
+    "runner": { "type": "string", "enum": ["auto", "promptfoo", "shell"] },
+    "judge": {
+      "type": "object",
+      "required": ["model", "temperature", "min_labels", "tpr_min", "tnr_min", "kappa_min"],
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string" },
+        "cross_model": { "type": ["string", "null"] },
+        "temperature": { "type": "number", "minimum": 0, "maximum": 2 },
+        "min_labels": { "type": "integer", "minimum": 1 },
+        "tpr_min": { "type": "number", "minimum": 0, "maximum": 1 },
+        "tnr_min": { "type": "number", "minimum": 0, "maximum": 1 },
+        "kappa_min": { "type": "number", "minimum": -1, "maximum": 1 }
+      }
+    },
+    "regression": {
+      "type": "object",
+      "required": ["k_stddev", "pass_rate_threshold"],
+      "additionalProperties": false,
+      "properties": {
+        "k_stddev": { "type": "number", "minimum": 0 },
+        "pass_rate_threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "feedback": {
+      "type": "object",
+      "required": ["learnings_cap", "attribution_confidence_min", "allow_global", "allow_project_code"],
+      "additionalProperties": false,
+      "properties": {
+        "learnings_cap": { "type": "integer", "minimum": 1 },
+        "attribution_confidence_min": { "type": "number", "minimum": 0, "maximum": 1 },
+        "allow_global": { "type": "boolean" },
+        "allow_project_code": { "type": "boolean" }
+      }
+    },
+    "traces": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["claude_session", "git_bugfix", "ci_log", "manual"] }
+        },
+        "max": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "monitored_skills": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

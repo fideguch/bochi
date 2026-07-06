@@ -1,0 +1,25 @@
+#!/bin/bash
+# repo-status <absolute-repo-path> — read-only git overview for the bridge.
+# LOLBIN-safe: fixed subcommands, pager disabled, refuses flag injection.
+set -euo pipefail
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+export GIT_PAGER=cat GIT_OPTIONAL_LOCKS=0 GIT_TERMINAL_PROMPT=0
+
+DIR="${1:?usage: repo-status <absolute-repo-path>}"
+
+case "$DIR" in
+  -*) echo "ERROR: flags are not accepted" >&2; exit 64 ;;
+  /*) ;;
+  *) echo "ERROR: path must be absolute" >&2; exit 64 ;;
+esac
+[ -d "$DIR" ] || { echo "ERROR: not a directory: $DIR" >&2; exit 66; }
+git -C "$DIR" rev-parse --git-dir > /dev/null 2>&1 || { echo "ERROR: not a git repo: $DIR" >&2; exit 66; }
+
+echo "== $DIR =="
+git -C "$DIR" status --short --branch
+echo ""
+echo "== recent commits =="
+git -C "$DIR" log --oneline --no-decorate -5 2>/dev/null || echo "(no commits)"
+echo ""
+echo "== stashes =="
+git -C "$DIR" stash list 2>/dev/null | head -3 || true

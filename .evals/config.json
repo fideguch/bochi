@@ -1,0 +1,28 @@
+{
+  "version": "0.1.0",
+  "runner": "auto",
+  "judge": {
+    "model": "claude-opus-4-8",
+    "cross_model": null,
+    "temperature": 0,
+    "min_labels": 15,
+    "tpr_min": 0.8,
+    "tnr_min": 0.8,
+    "kappa_min": 0.6
+  },
+  "regression": {
+    "k_stddev": 1.0,
+    "pass_rate_threshold": 0.9
+  },
+  "feedback": {
+    "learnings_cap": 50,
+    "attribution_confidence_min": 0.6,
+    "allow_global": false,
+    "allow_project_code": false
+  },
+  "traces": {
+    "sources": ["claude_session", "git_bugfix", "ci_log"],
+    "max": 200
+  },
+  "monitored_skills": []
+}

@@ -1,5 +1,8 @@
 name: Quality Gate
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
 jobs:
   static:
     name: Static Analysis
@@ -37,10 +40,23 @@ jobs:
 
       - name: Validate shell scripts syntax
         run: |
-          for f in tests/*.sh deploy/*.sh; do
+          for f in tests/*.sh deploy/*.sh deploy/mac/*.sh deploy/mac/bin/*; do
             bash -n "$f" || exit 1
             echo "OK: $f"
           done
+
+      - name: Validate launchd plists (parseable)
+        run: |
+          for p in deploy/mac/templates/*.plist; do
+            python3 -c "import plistlib,sys; plistlib.load(open('$p','rb'))" || exit 1
+            echo "OK: $p"
+          done
+
+      - name: Validate bridge settings JSON
+        run: python3 -c "import json; json.load(open('deploy/mac/templates/bridge-settings.json'))"
+
+      - name: Validate bridge guard (py_compile)
+        run: python3 -m py_compile deploy/mac/bridge-guard.py
 
   infra:
     name: Infrastructure E2E

@@ -11,9 +11,14 @@ description: |
   or when brainstorming skill is already active for design work.
 ---
 
-# bochi v2.5-cli — Mac Companion
+# bochi v2.6-cli — Mac Companion
 
-Mac CLI 専用のコンパニオンモード。深い対話は Discord の bochi に集約するゆ。
+Mac CLI 専用のコンパニオンモード。深い対話は Discord に集約するゆ。
+
+> v2.6: Discord の応答者は Lightsail bochi から **Mac 常駐 Claude ブリッジ**
+> （`references/mac-bridge-setup.md`）に交代。リダイレクト先・context-seed の
+> 受け手は同じ Mac 上のブリッジセッションになった（S3 経由の受け渡しは不要、
+> `~/bochi-data/context-seeds/` をローカルで共有）。
 
 ## Product Vision
 

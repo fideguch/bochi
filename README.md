@@ -1,4 +1,4 @@
-# bochi v2.5 — PM Companion
+# bochi v2.6 — PM Companion
 
 アイデアの種（メモ・URL・ひらめき）を「構造化された仮説」に変換し、日々のPM活動を支えるコンパニオン Claude Code スキル。
 
@@ -10,6 +10,21 @@ bochiは「PMの思考をどこからでもアクセスできるハブ」。
 2. **S3データハブ**: bochi-data → S3 → 全環境同期。データは常に最新
 3. **能動的メモ保存**: 価値ある会話はbochiが保存を提案する。ユーザーの「メモして」を待たない
 
+## What's New in v2.6 (2026-07-06) — Mac-Resident Claude Bridge
+
+Discord DM の応答者を Lightsail の Claude から **Mac 常駐の Claude Code**（サブスク認証・ローカル FS/全プロジェクト記憶アクセス）へ切替。
+
+- **常駐化**: launchd（RunAtLoad + 120 秒 health）+ 専用 tmux socket `claude-bridge`。mobile-dev-bridge の caffeinate 基盤の上で 24/7 稼働
+- **認証刷新**: `--dangerously-skip-permissions` 廃止 → default-deny 権限 + **Discord permission relay（スマホの 🔐 ボタンで承認）**。秘匿ストア・自己改変・tmux 干渉は fail-close guard で hard-deny
+- **記憶ハブ**: `~/.claude/projects/*/memory/` を横断リコール。PC 状態は読み取り専用ラッパー（pc-status / repo-status）で把握
+- **不干渉ガードレール**: 他プロジェクトの Claude セッションに介入しない。重い作業は headless `claude -p/--bg` への委譲を提案
+- **データ層**: bochi-data 実体を `~/bochi-data` へ移設（`~/.claude/` 書込ブロック対策）。seen.jsonl は両側 push + union-merge 同期に変更
+- **Lightsail は新聞係として存続**（生成 cron + Python 配信は無変更）。カットオーバーは access.json の dmPolicy 1 キーで即時可逆
+- 詳細: `references/mac-bridge-setup.md` / 検証: `tests/mac-bridge-e2e.sh`
+
+<details>
+<summary>v2.5 の変更</summary>
+
 ## What's New in v2.5 (2026-04-30) — Multimedia Research Expansion
 
 - **YouTube/X リアルタイム連携**: Mode 1 Phase C の ReAct ループが YouTube RSS と X (Nitter RSS) を扱えるように。動画字幕は `scripts/fetch_yt_transcript.py` で取得し、`~/bochi-data/transcripts/` にキャッシュして全環境で共有。
@@ -19,6 +34,8 @@ bochiは「PMの思考をどこからでもアクセスできるハブ」。
 - **trusted-domains に YT/X allowlist**: Lenny's Podcast, YCombinator, Anthropic, @karpathy, @sama 等。
 - **Bot deploy 改善**: setup-cron 冪等再構築、health-check の idle-listening 認識、tmux-start の stale lock inode リセット。
 - **毎朝 Discord 新聞配信**: `0 23 * * *` UTC (= 8:00 JST) で当日の朝刊が自動的に Discord DM に届く。記事カード形式、URL embed 抑制でモバイル読みやすさ最適化。
+
+</details>
 
 <details>
 <summary>v2.0-v2.4 の変更</summary>

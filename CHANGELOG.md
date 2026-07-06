@@ -2,6 +2,49 @@
 
 All notable changes to bochi are documented here.
 
+## v2.6 (2026-07-06) — Mac-Resident Claude Bridge
+
+### Added
+
+- **Mac 常駐ブリッジ一式** (`deploy/mac/`): `bridge-start.sh`（tmux -L claude-bridge、
+  mkdir アトミックロック、claude ≥2.1.195 の起動文言 `Listening for messages from` 対応、
+  再起動後の未応答メッセージ回収 bootstrap 注入）、`bridge-health.sh`（permission プロンプトは
+  自動承認せず健全待機 + 10 分で通知、rate-limit/parse-fail 検知通知、5 回/時 backoff、
+  04:30 JST アイドル時のみ日次リスタート）、`setup-bridge.sh`（dry-run 既定の冪等インストーラ）。
+- **Runtime 定義** (`deploy/mac-claude.md`): Claude 人格・全プロジェクト記憶リコール・
+  不干渉ガードレール（他 tmux への send-keys 禁止・重作業は headless 委譲）・
+  Discord UX（禁止絵文字/再起動非露出/2000 字制限は CI と同一基準）・書込パス HARD-GATE。
+- **権限 3 層モデル** (`deploy/mac/templates/bridge-settings.json` + `bridge-guard.sh`):
+  allow（ホーム読取 + 限定書込 + 最小 Bash）/ ask（permission relay → Discord 🔐 ボタン）/
+  hard-deny（秘匿ストア・enforcement 自己改変・tmux 干渉、fail-close）。
+  bypass permissions と tmux-auto-approve は不採用。
+- **読み取り専用ラッパー** (`deploy/mac/bin/pc-status`, `repo-status`): git/tmux の
+  LOLBIN リスク（`-c core.pager` 等）を固定引数ラッパーで遮断。
+- **LaunchAgents** (`com.fideguch.claude-bridge` RunAtLoad / `-health` 120s):
+  PATH 明示（.local/bin, .bun/bin, nodebrew, homebrew）、CLAUDE_BRIDGE=1、
+  AbandonProcessGroup、ProcessType Interactive。
+- **E2E バッテリー** (`tests/mac-bridge-e2e.sh`): guard 3 分類 + fail-close、
+  単一応答者不変条件（pgrep 自己マッチ対策済み）、launchd/tmux/pane/API、
+  Lightsail dmPolicy + allowFrom 保全チェック。
+- **specs-evals**: `.evals/` 初期化、失敗タクソノミー T1-T6
+  (`error-analysis/2026-07-06-mac-bridge.md`)、eval specs 2 本 + golden dataset 8 件。
+- **Runbook** (`references/mac-bridge-setup.md`): カットオーバー/ロールバック順序、
+  新聞配信と access.json の結合注意、既知制約。
+
+### Changed
+
+- **応答者切替**: Lightsail access.json `dmPolicy=disabled`（ホットリロード・即時可逆）。
+  Lightsail は新聞生成/配信係として存続。
+- **bochi-data 実体移設**: `~/.claude/bochi-data` → `~/bochi-data` + symlink
+  （非 bypass セッションの `~/.claude/` Write が sensitive-file ブロックされるため。実測 2026-07-06）。
+- **seen.jsonl 同期**: Darwin push 除外を解除し両側 push + pull 時 union-merge に変更
+  （応答者交代による split-brain 防止。hooks: bochi-s3-push/safety-push/pull×3）。
+- **CI** (`quality.yml`): `deploy/mac/` の bash -n / plist / settings JSON 検証を追加、
+  `workflow_dispatch` トリガー追加。`discord-e2e.sh` CH-01（ゆ語尾率）は
+  ペルソナ交代に伴い informational WARN 化（CH-02/EH-02/UX-01 は存置し bridge 側仕様で遵守）。
+- **グローバル hooks**: `claude-stop-notify.sh`（深夜の通知音防止）と
+  `pm-pipeline-guard.js` に `CLAUDE_BRIDGE=1` early-exit を追加（my_dotfiles 側）。
+
 ## v2.5 (2026-04-30) — Multimedia Research Expansion
 
 ### Added
