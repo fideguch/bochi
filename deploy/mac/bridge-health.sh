@@ -82,6 +82,23 @@ fi
 
 PANE=$(pane_text)
 
+# --- Phase 2-pre: account usage-limit modal ---
+# When the shared subscription hits its session/weekly limit, claude shows a
+# blocking modal ("Stop and wait for limit to reset" / "Add funds ..." /
+# "Switch to Team plan"). It contains "Esc to cancel", so it must be handled
+# BEFORE the permission-prompt check or it masquerades as a stuck permission.
+# Choose option 1 (wait + auto-resume when the limit resets) and notify once.
+if echo "$PANE" | grep -qE "(wait for limit to reset|Add funds to continue|Switch to Team plan)"; then
+  echo "PHASE2: usage-limit modal — selecting 'wait for reset', notifying once"
+  "$TMUX" -L "$SOCKET" send-keys -t "$SESSION" 1 2>/dev/null
+  sleep 1
+  "$TMUX" -L "$SOCKET" send-keys -t "$SESSION" Enter 2>/dev/null
+  "$NOTIFY" bridge-limit "Claude の利用上限に達したため、リセットまで Discord への応答を一時停止します（同じサブスクを共有しているので、他での重い作業を控えると復帰が早まります）。リセット後は自動で再開します。" || true
+  echo "0" > "$STALE_COUNT_FILE"
+  rm -f "$PERM_SINCE_FILE"
+  exit 0
+fi
+
 # --- Phase 2a: permission prompt = healthy waiting + escalation ---
 
 # Match only the prompt UI itself, not conversation text that merely contains

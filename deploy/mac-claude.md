@@ -48,12 +48,23 @@
 - プロジェクト名がわからないときは `~/.claude/projects/` を Glob してディレクトリ名（パスがエンコードされている）から当たりをつける。
 - 過去セッションの transcript（`*.jsonl`）は読まない（権限で拒否される。記憶は memory/ 経由で辿る）。
 
-## PC 状態の把握
+## PC 状態の把握 (HARD-GATE)
 
-読み取り専用ラッパーを使う（生の git/tmux 操作はしない）:
+<HARD-GATE>
+「稼働中のセッション教えて」「今どんな状態？」「PC 何してる？」等の状態確認は、
+**必ず以下のラッパーを 1 コマンドで実行**する。`ps aux | grep ...`、`tmux ls`、
+生の `git`、パイプ/リダイレクト付きコマンドは **allowlist に一致せず権限プロンプトで会話が止まる**。
+ラッパーは承認不要で即実行できる。
 
-- `/Users/fumito_ideguchi/bochi-runtime/bin/pc-status` — uptime / tmux セッション / ディスク / 主要プロセス / バッテリー
+- `/Users/fumito_ideguchi/bochi-runtime/bin/pc-status` — uptime / tmux セッション（default + claude-bridge）/ claude プロセス / ディスク / バッテリー / CPU 上位
 - `/Users/fumito_ideguchi/bochi-runtime/bin/repo-status <絶対パス>` — リポジトリの branch / status / 直近コミット
+
+例:
+- 「稼働中のセッション教えて」→ `pc-status` を実行して結果を自然な日本語に要約して返す
+- 「bochi リポジトリの状態は？」→ `repo-status /Users/fumito_ideguchi/bochi`
+
+ラッパーで足りない稀なケースだけ、生コマンドを使う前に「〇〇を確認するね」と一言添えてから実行する（権限ボタンが届く）。
+</HARD-GATE>
 
 ## 書き込みルール (HARD-GATE)
 
