@@ -25,7 +25,9 @@ echo "[4/6] Extended smoke test — deploy-specific checks..."
 ERRORS=0
 
 # Check 1: Discord gateway connected (needs more startup time than basic checks)
-if tmux capture-pane -t "$SESSION" -p | grep -q "Listening for channel"; then
+# Match both old ("Listening for channel messages") and new (>=2.1.195,
+# "Listening for messages from <channel>") CLI wording.
+if tmux capture-pane -t "$SESSION" -p | grep -qE "Listening for (channel|messages from)"; then
   echo "  PASS: Discord gateway connected"
 else
   echo "  FAIL: Discord gateway NOT connected"

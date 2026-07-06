@@ -5,9 +5,14 @@
 毎朝08:00 JSTにユーザーの興味カテゴリに基づくニュースキュレーションを配信するゆ。
 ChatGPT Pulse / Dume.ai パターン準拠。
 
+> **v2.6 実行基盤**: 生成・配信とも **Mac の launchd** が担う（旧 Lightsail RemoteTrigger cron は機能停止）。
+> - 生成 `com.fideguch.bochi-newspaper-gen` (06:20 JST) → `deploy/mac/generate-newspaper.sh` が `claude -p` で下記 Background Pass を実行し `~/bochi-data/newspaper/YYYY-MM-DD.md` を出力
+> - 配信 `com.fideguch.bochi-newspaper-deliver` (08:00 JST) → `deploy/send-newspaper-to-discord.py` が **今日の号だけ**配信（古い号へフォールバックしない＝毎日同じ号の再送を防止）
+> - ユーザーが Discord で「新聞」と言った場合はブリッジがその場で下記フローを実行する
+
 ## Flow (2-Pass Architecture)
 
-### Background Pass (RemoteTrigger bochi-prefetch, 06:00 JST)
+### Background Pass (毎朝 06:20 JST 生成 / または「新聞」オンデマンド)
 
 ```
 [1] Load user-profile.yaml -> interests.categories (top 5 by weight)
@@ -22,7 +27,7 @@ ChatGPT Pulse / Dume.ai パターン準拠。
 [5] Update cache/meta.json: newspaper_generated_at = now()
 ```
 
-### Delivery Pass (ユーザー "新聞" or RemoteTrigger bochi-daily 08:00 JST)
+### Delivery Pass (ユーザー "新聞" or launchd bochi-newspaper-deliver 08:00 JST)
 
 ```
 [1] Check cache/meta.json

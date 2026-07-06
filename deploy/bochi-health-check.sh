@@ -131,8 +131,11 @@ phase2_responsiveness_probe() {
   fi
 
   # Check if Claude is in healthy idle state (waiting for Discord messages)
-  # This prevents false "unresponsive" detection when bochi is simply waiting for input
-  if grep -q "Listening for channel messages" "$PANE_CAPTURE" 2>/dev/null; then
+  # This prevents false "unresponsive" detection when bochi is simply waiting for input.
+  # claude >=2.1.195 changed the line to "Listening for messages from <channel>",
+  # so match either the old or new wording (and fall back to the idle prompt) to
+  # avoid a restart-loop when the Lightsail CLI auto-updates.
+  if grep -qE "Listening for (channel messages|messages from)" "$PANE_CAPTURE" 2>/dev/null; then
     if grep -q "❯" "$PANE_CAPTURE" 2>/dev/null; then
       echo "0" > "$STALE_COUNT_FILE"
       echo "PHASE2: Idle-healthy (listening for messages)"

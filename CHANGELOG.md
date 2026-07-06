@@ -2,6 +2,41 @@
 
 All notable changes to bochi are documented here.
 
+## v2.6.1 (2026-07-06) — Newspaper Revival + Conversation Fixes
+
+### Fixed
+
+- **新聞が毎日同じ号を再送する不具合**: Lightsail の RemoteTrigger 生成 cron が
+  機能停止（最新号が 2026-06-06 で固定）していたのに、配信スクリプトが「今日の号が
+  無ければ最新 mtime の号」にフォールバックしていたため、同じ古い号を毎朝再送していた。
+  `send-newspaper-to-discord.py` の stale フォールバックを撤廃し、今日の号（JST）が
+  無ければ**配信をスキップ**するように変更（`NoFreshNewspaper`）。
+- **会話が権限プロンプトで停止する不具合**: 「稼働中のセッション教えて」等で
+  `ps aux | grep` のようなパイプ付きコマンドを打つと allowlist に一致せず権限
+  プロンプトで止まっていた。`deploy/mac-claude.md` を HARD-GATE 化し、状態確認は
+  必ず `pc-status`/`repo-status` ラッパー（単一 allowlist コマンド）を使うよう明記。
+- **利用上限モーダルを権限待ちと誤認**: アカウントの利用上限モーダル（"Stop and wait
+  for limit to reset" 等）が "Esc to cancel" を含むため権限プロンプト検出に誤ヒットし、
+  放置＋誤った「10分権限待ち」通知を出していた。上限モーダルを先に検出して option 1
+  （待機・リセット後自動再開）を自動選択し、オーナーに1回だけ正しく通知するよう修正。
+- **死んだ起動文字列**: Lightsail の `bochi-health-check.sh` / `restart-bot.sh` が
+  claude <2.1.195 の旧文言 `Listening for channel messages` に依存し、CLI 更新で
+  再起動ループを起こす潜在バグ。新旧両文言（`Listening for (channel messages|messages from)`）
+  に対応。
+
+### Added
+
+- **Mac 側の新聞生成・配信** (`deploy/mac/generate-newspaper.sh`,
+  `deploy/mac/deliver-newspaper.sh` + launchd `com.fideguch.bochi-newspaper-gen`
+  06:20 JST / `-deliver` 08:00 JST): 生成は `claude -p` が Mode 2 を実行して
+  今日の号を出力（生成失敗時は部分ファイルを残さず配信スキップ）。配信は今日の号のみ。
+- Lightsail の配信 cron を無効化（Mac へ移管、二重配信防止）。
+
+### Changed
+
+- README.md / README.en.md を v2.6 の実態（Mac ブリッジ応答者・新聞パイプライン・
+  データ層実パス・権限3層・フォルダ構成）に全面刷新。
+
 ## v2.6 (2026-07-06) — Mac-Resident Claude Bridge
 
 ### Added

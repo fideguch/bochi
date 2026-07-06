@@ -88,7 +88,11 @@ PANE=$(pane_text)
 # "Switch to Team plan"). It contains "Esc to cancel", so it must be handled
 # BEFORE the permission-prompt check or it masquerades as a stuck permission.
 # Choose option 1 (wait + auto-resume when the limit resets) and notify once.
-if echo "$PANE" | grep -qE "(wait for limit to reset|Add funds to continue|Switch to Team plan)"; then
+# Require BOTH the modal option text AND the modal footer, and only look at the
+# bottom of the pane, so conversation text can't trigger the send-keys.
+PANE_TAIL=$(echo "$PANE" | tail -20)
+if echo "$PANE_TAIL" | grep -qE "(wait for limit to reset|Add funds to continue|Switch to Team plan)" \
+   && echo "$PANE_TAIL" | grep -qE "(Esc to cancel|Enter to confirm)"; then
   echo "PHASE2: usage-limit modal — selecting 'wait for reset', notifying once"
   "$TMUX" -L "$SOCKET" send-keys -t "$SESSION" 1 2>/dev/null
   sleep 1

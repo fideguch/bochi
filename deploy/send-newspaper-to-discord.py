@@ -22,12 +22,18 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 HOME = pathlib.Path.home()
-NEWSPAPER_DIR = HOME / ".claude/bochi-data/newspaper"
+# ~/.claude/bochi-data is a symlink to ~/bochi-data on the Mac (real path on
+# Lightsail is ~/.claude/bochi-data). Resolve so both hosts read the same dir.
+NEWSPAPER_DIR = (HOME / ".claude/bochi-data/newspaper").resolve()
 ENV_FILE = HOME / ".claude/channels/discord/.env"
 ACCESS_FILE = HOME / ".claude/channels/discord/access.json"
-LOG_FILE = HOME / "bochi-data/errors/newspaper-discord.log"
+LOG_FILE = (HOME / ".claude/bochi-data/errors/newspaper-discord.log").resolve()
 CHUNK_LIMIT = 1900
 DRY_RUN = "--dry-run" in sys.argv
+# Only deliver a newspaper generated for today (JST). Never fall back to an
+# older file — that caused the same stale brief to be resent every morning.
+# Set BOCHI_NEWSPAPER_MAX_AGE_DAYS to allow a slightly older file if needed.
+MAX_AGE_DAYS = int(__import__("os").environ.get("BOCHI_NEWSPAPER_MAX_AGE_DAYS", "0"))
 
 
 def log(msg: str) -> None:
@@ -54,15 +60,28 @@ def load_recipient() -> str:
     return allowed[0]
 
 
+class NoFreshNewspaper(Exception):
+    """No newspaper generated for today — skip delivery instead of resending
+    an old one."""
+
+
 def pick_newspaper() -> pathlib.Path:
-    today_jst = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d")
-    candidate = NEWSPAPER_DIR / f"{today_jst}.md"
-    if candidate.exists():
-        return candidate
-    files = sorted(NEWSPAPER_DIR.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if not files:
-        raise RuntimeError(f"no newspaper files in {NEWSPAPER_DIR}")
-    return files[0]
+    """Return today's (JST) newspaper file, or one within MAX_AGE_DAYS.
+    Raises NoFreshNewspaper if none is fresh — the caller skips delivery."""
+    today = datetime.now(ZoneInfo("Asia/Tokyo")).date()
+    for age in range(MAX_AGE_DAYS + 1):
+        d = today - __import__("datetime").timedelta(days=age)
+        candidate = NEWSPAPER_DIR / f"{d.isoformat()}.md"
+        if candidate.exists() and candidate.stat().st_size > 0:
+            return candidate
+    newest = "none"
+    files = sorted(NEWSPAPER_DIR.glob("*.md"))
+    if files:
+        newest = files[-1].name
+    raise NoFreshNewspaper(
+        f"no newspaper for {today.isoformat()} (max_age={MAX_AGE_DAYS}d); "
+        f"newest on disk is {newest} — generation likely did not run"
+    )
 
 
 _LINK_RE = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
@@ -197,10 +216,21 @@ def main() -> int:
     try:
         token = load_token()
         user_id = load_recipient()
-        newspaper = pick_newspaper()
+        try:
+            newspaper = pick_newspaper()
+        except NoFreshNewspaper as e:
+            log(f"SKIP: {e}")
+            log("--- run skipped (no fresh newspaper) ---")
+            return 0
         body = newspaper.read_text()
         title, categories = parse_newspaper(body)
         article_count = sum(len(arts) for _, arts in categories)
+        # A file that parses to zero articles is malformed — skip rather than
+        # send an empty brief (defence-in-depth alongside the generator's guard).
+        if article_count == 0:
+            log(f"SKIP: {newspaper.name} parsed to 0 articles — malformed, not sending")
+            log("--- run skipped (malformed newspaper) ---")
+            return 0
         log(f"newspaper={newspaper.name} bytes={newspaper.stat().st_size} categories={len(categories)} articles={article_count} recipient={user_id}")
 
         messages = build_messages(title, categories, CHUNK_LIMIT)

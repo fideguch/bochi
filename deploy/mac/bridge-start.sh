@@ -102,6 +102,8 @@ ensure_runtime() {
   install_file "$REPO/deploy/mac/bridge-start.sh" "$RUNTIME/bin/bridge-start.sh" 555
   install_file "$REPO/deploy/mac/bridge-health.sh" "$RUNTIME/bin/bridge-health.sh" 555
   install_file "$REPO/deploy/mac/notify-owner.sh" "$RUNTIME/bin/notify-owner.sh" 555
+  install_file "$REPO/deploy/mac/generate-newspaper.sh" "$RUNTIME/bin/generate-newspaper.sh" 555
+  install_file "$REPO/deploy/mac/deliver-newspaper.sh" "$RUNTIME/bin/deliver-newspaper.sh" 555
   install_file "$REPO/deploy/mac/bin/pc-status" "$RUNTIME/bin/pc-status" 555
   install_file "$REPO/deploy/mac/bin/repo-status" "$RUNTIME/bin/repo-status" 555
 

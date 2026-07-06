@@ -1,247 +1,162 @@
-# bochi v2.5 — PM Companion
+# bochi v2.6 — PM Companion
 
-A Claude Code skill that transforms idea seeds (memos, URLs, sparks) into structured hypotheses and supports daily PM activities as a thinking companion.
+A Claude Code skill that turns idea seeds (memos, URLs, sparks) into structured
+hypotheses and supports daily PM work as a thinking companion.
+**Talk to the Claude running on this Mac, anytime, from a Discord DM.**
 
 ## Product Vision
 
 bochi is a "thinking hub accessible from anywhere" for PMs.
 
-1. **Thinking Hub**: Access the same memory from Discord DM, Mac CLI, or anywhere
-2. **S3 Data Hub**: bochi-data → S3 → all environments synced. Data is always current
-3. **Proactive Memo Save**: bochi proposes saving valuable conversations without waiting for "save this"
+1. **Thinking Hub**: the same memory from Discord DM, Mac CLI, or anywhere
+2. **Mac-resident brain**: the Discord responder is the Claude Code session on
+   the Mac — with local filesystem and cross-project memory access
+3. **S3 Data Hub**: bochi-data syncs across environments via S3
+4. **Proactive Memo Save**: bochi proposes saving valuable conversations
 
-## What's New (2026-04-30) — Multimedia Research Expansion
+## Architecture at a Glance
 
-### Mode 1 Phase C extends to YouTube and X (PR #3, #4, #7)
+```
+Discord DM (owner allowlist only)
+  │ Gateway WebSocket (same bot token, exactly one responder)
+  ├─ Lightsail server.ts … dmPolicy=disabled → drop all (kept as newspaper host)
+  └─ Mac server.ts ───────→ Mac-resident Claude Code session (the only --channels responder)
+                             ├ tmux -L claude-bridge / launchd resident + 120s health
+                             ├ cwd ~/bochi-runtime (CLAUDE.md = deploy/mac-claude.md)
+                             ├ 3-layer perms: allow / ask (Discord 🔐 relay) / hard-deny
+                             └ recalls ~/.claude/projects/*/memory across projects
+```
 
-- **YouTube/X real-time sources** are now first-class in the Phase C ReAct loop. YouTube via `@handle` → channelId → RSS; X via `nitter.net/<user>/rss`. Verified channels and accounts are append-only-curated in `references/learned-channels.md` (mirrors `learned-sources.md`).
-- **Format-specific E-E-A-T caps for video/SNS**: single tweet 24/40, thread 32/40, video+transcript 36/40, articles uncapped. Freshness bonus ±2 by hours since publish. SNS-only conclusions carry a `preliminary` tag.
-- **Phase D Check #6 — Video/SNS hygiene**: written-source pairing required, ISO publish timestamp, transcript citation, >72h flagged as stale.
-- **Cache-first transcript pipeline**: structurally solves YouTube's blanket block of cloud-provider IPs (AWS/GCP/Azure). `~/bochi-data/transcripts/<id>.txt` is the shared cache; Mac (residential IP) fetches → S3 sync → all bot environments read it. `scripts/fetch_yt_transcript.py` runs cache-first on every host.
-- **Sub-agent summarisation pattern** (adopted from pokemon-champions skill): videos longer than ~3 minutes are summarised by a `general-purpose` sub-agent before being treated as a Phase C signal — used as "why is this trending / practitioner take," not as numerical ground truth.
+- **The Mac responds**: only the session launched with `--channels plugin:discord`
+  receives messages. Lightsail is silenced via `access.json` `dmPolicy:"disabled"`
+  (re-read per message; a 1-key, reversible cutover).
+- **Newspaper is generated and delivered on the Mac**: launchd at 06:20 JST
+  (generate) and 08:00 JST (deliver).
+- Full setup / ops / rollback: **`references/mac-bridge-setup.md`**.
 
-### Bot operations improvements (PR #5)
+## What's New in v2.6 (2026-07-06) — Mac-Resident Claude Bridge
 
-- `deploy/setup-cron.sh` switched to an **idempotent rebuild** strategy. Removes legacy `--trigger` cron entries (the flag was removed from Claude Code CLI). Adds S3 sync cron entries, auto-fixes the @reboot path.
-- `deploy/bochi-health-check.sh` passes shell variables to its embedded Python via `os.environ` (no quoting bugs on special-character paths). Recognises `Listening for channel messages` + prompt as a **healthy idle state** to prevent false unresponsive detection.
-- `deploy/bochi-tmux-start.sh` adds `clean_stale_lock()` that atomically resets the lock inode via `mv`, releasing stale flock holders. flock timeout reduced 120s → 30s.
-
-### Daily Discord newspaper delivery (PR #5)
-
-- `deploy/send-newspaper-to-discord.py` runs `0 23 * * *` UTC = **8:00 JST every morning**, delivering the day's curated brief to the Discord DM. Article-card format, embed-suppressed URLs for clean mobile reading, chunks at the 1900-char limit from `access.json` `textChunkLimit`.
-
-### Future-ready: Cloudflare Worker proxy (PR #6 → inactive in PR #7)
-
-- `worker/transcript-proxy/` keeps an Innertube-based Worker. YouTube extended its bot detection to Cloudflare edge IPs in 2026, so the Worker is **currently inactive**, but it can be revived without code change by combining with a residential proxy or a third-party API (Supadata) — set `BOCHI_YT_PROXY_URL` and `BOCHI_YT_PROXY_TOKEN` and Tier 2c activates automatically.
-
-<details>
-<summary>v2.0-v2.4 changes</summary>
-
-### v2.4 — Edge Case Completeness + DRY
-
-- All 14 spec files have Edge Cases, SKILL.md DRY, Session Continuity Protocol, 49 scenario tests
-
-### v2.3 — Thinking Hub + Quality
-
-- Mode 1 spec extraction, proactive memo save, CI/CD, DX files, 47 tests
-
-### v2.2 — Lightsail + Mode 6/7
-
-- deploy/lightsail-claude.md, Mode 6 Google Brief, Mode 7 PM Tools, 40 tests
-
-### v2.1 — Speed + Signals
-
-- response-speed-spec (7 techniques), discord-ux-spec, seen-tracking cache
-
-### v2.0 — Initial Release
-
-- 5-Mode Router, Context Signal Triggers, Persistent Data Layer, Discord Integration
-</details>
-
-## Key Strengths
-
-### 1. Evidence-Backed Expansion (Unique)
-SCAMPER expansion → ReAct research → E-E-A-T scoring → first-principles critique in a single skill.
-Neither IDEO Design Thinking (expansion only) nor OpenAI Deep Research (research only) offers this integrated flow.
-
-### 2. Learning Accumulation
-`learned-sources.md` + `feedback-log.md` + PDCA reflections + PostToolUse Hooks auto-record. Research precision improves with use. Miro AI / Juma / Perplexity have no accumulation mechanism.
-
-> The PostToolUse Hook (`bochi-feedback-capture.sh`) is included in [my_dotfiles](https://github.com/fideguch/my_dotfiles) under `claude/scripts/hooks/` and symlinked to `~/.claude/scripts/hooks/` by `set_up.sh`.
-
-### 3. Native PM Pipeline Integration
-Fits as the upstream stage (thought expansion) of `/brainstorming` (design exploration) → `/requirements_designer` → `/speckit-bridge`.
-Auto-handoff to `/pm-discovery-interview-prep` connects directly to user validation.
-
-### 4. Mobile-First PM Journey
-Morning newspaper → commute memos → meeting-gap casual chat → evening memory review.
+- **Residency**: launchd (RunAtLoad + 120s health) + a dedicated tmux socket
+  `claude-bridge`, on top of the mobile-dev-bridge caffeinate substrate. Does not
+  depend on the CLI startup banner (which changes across updates); treats the idle
+  TUI prompt as healthy to avoid restart loops.
+- **Auth overhaul**: drops `--dangerously-skip-permissions` → default-deny perms +
+  **Discord permission relay (approve with a 🔐 button on your phone)**. Secret
+  stores, self-modification, and any tmux interference are hard-denied by a
+  fail-close guard (path-normalized + case-insensitive to close APFS/`../`/
+  relative-path/interpreter-write bypasses).
+- **Memory hub**: recalls `~/.claude/projects/*/memory/`. PC state is read via
+  read-only wrappers (`pc-status` / `repo-status`) — raw `ps|grep` / `tmux ls`
+  trigger permission prompts, so the wrappers are mandatory.
+- **Non-interference guardrail**: never `send-keys`/`attach` into other projects'
+  Claude sessions; heavy work is delegated to headless `claude -p`/`--bg`.
+- **Newspaper revival**: the Lightsail RemoteTrigger generation cron had stopped
+  (delivery was resending the same stale issue daily). Generation and delivery
+  moved to Mac launchd; delivery sends only *today's* issue (no stale fallback).
+- **Data layer**: bochi-data's real path moved to `~/bochi-data` (writes under
+  `~/.claude/` are blocked as sensitive files); `~/.claude/bochi-data` is a
+  symlink. `seen.jsonl` is union-merge synced on both sides.
+- Verification: `tests/mac-bridge-e2e.sh` (40 checks) + `.evals/` (failure
+  taxonomy + eval specs).
 
 ## 8 Modes
 
 | Mode | Trigger | Purpose |
 |------|---------|---------|
 | 1 Idea | `bochiして`, URL, thinking verbs + context | Deep dive + expand + research |
-| 2 Newspaper | `新聞`, `朝刊`, cron 08:00 JST | Daily curated news by interest |
+| 2 Newspaper | `新聞`, `朝刊`, daily launchd | Daily curated news by interest |
 | 3 Casual Chat | `おすすめ`, `何か面白い？` | Related updates + serendipity |
 | 4 Memory | `記憶整理`, `覚えてること教えて` | Search, review, archive |
 | 5 Companion | `メモある？`, `前に話したやつ` | Surface relevant memos during work |
 | 6 Google Brief | `今日の予定`, `メール確認` | Calendar + Gmail from cache |
 | 7 PM Tools | `イシュー一覧`, `チケット作って` | Linear/GitHub Issue delegation |
-| 8 Vocab | `単語帳`, `クイズ`, bare English word/phrase | Vocabulary notebook + SM-2 quiz + bulk add |
+| 8 Vocab | `単語帳`, `クイズ`, a bare word/phrase | Vocabulary notebook + SM-2 quiz |
+
+The default conversational persona is Claude itself (natural Japanese). The mode
+router in `~/.claude/skills/bochi/SKILL.md` engages on the triggers above.
 
 ## Quick Start
 
+Talking to it: just DM the bot on Discord — the responder is the Mac-resident
+Claude.
+
+Setting up / updating the Mac bridge:
+
 ```bash
-# Install
-cd ~/.claude/skills && git clone <repo-url> bochi
-
-# Data directory is created on first use at ~/.claude/bochi-data/
-
-# Basic usage — say: "bochiして" or "新聞" or "おすすめ"
-
-# Discord setup (optional) — see references/discord-setup.md
+cd ~/bochi
+bash deploy/mac/setup-bridge.sh              # dry-run first
+bash deploy/mac/setup-bridge.sh --apply      # build runtime + register 4 launchd agents
+bash ~/bochi-runtime/bin/bridge-start.sh start
+bash tests/mac-bridge-e2e.sh --with-lightsail
 ```
 
-## Mode 1: Idea Expansion (7-Phase Flow)
+Registered launchd agents:
+
+| Label | Schedule | Role |
+|-------|----------|------|
+| `com.fideguch.claude-bridge` | RunAtLoad | bridge session |
+| `com.fideguch.claude-bridge-health` | 120s | liveness + usage-limit modal handling |
+| `com.fideguch.bochi-newspaper-gen` | 06:20 JST | generate today's brief |
+| `com.fideguch.bochi-newspaper-deliver` | 08:00 JST | deliver today's brief only |
+
+## Newspaper Pipeline (Mode 2)
 
 ```
-Input (memo or URL)
-  → Phase A: Deep Dive — Socratic 8-level questioning (max 5 questions)
-  → Phase B: Expand — SCAMPER 7 perspectives, 2-3 proposals
-  → Phase C: Research — ReAct loop + E-E-A-T quality scoring
-  → Phase D: Critique — First-principles check + bias verification (HARD-GATE)
-  → Phase E: Output — Teresa Torres OST structure + user hypotheses
-  → Phase F: Next Steps — brainstorming / interview-prep / continue
-  → Phase G: Learning — feedback → profile update
+[generate] com.fideguch.bochi-newspaper-gen (06:20 JST)
+  → deploy/mac/generate-newspaper.sh runs claude -p
+  → interests × WebSearch × E-E-A-T filter → ~/bochi-data/newspaper/YYYY-MM-DD.md
+  → on failure, leaves no partial file (delivery then skips)
+
+[deliver] com.fideguch.bochi-newspaper-deliver (08:00 JST)
+  → deploy/send-newspaper-to-discord.py delivers ONLY today's issue
+  → if today's issue is missing, skips (never resends an old one)
+  → article-card format, embeds suppressed for mobile
 ```
 
 ## Data Layer
 
+Real path is `~/bochi-data/` (`~/.claude/bochi-data` is a symlink to it).
+
 ```
-~/.claude/bochi-data/
+~/bochi-data/
 ├── index.jsonl              # Master search index (JSONL append)
 ├── user-profile.yaml        # Interests, category weights, settings
-├── seen.jsonl               # Seen article URL tracking (dedup)
-├── topics/                  # Researched topics (1 file each)
-├── memos/                   # Cross-context memos (Discord/CLI)
-├── newspaper/               # Newspaper archive
-├── reflections/             # PDCA daily reflections
-├── stats/usage.jsonl        # Skill usage stats
-├── sources/verified.jsonl   # Verified source quality DB
-├── cache/                   # Performance cache layer
-│   ├── newspaper-draft.md   # Pre-generated newspaper (06:00 JST cron)
-│   ├── trending/*.jsonl     # Category trending article pool
-│   ├── meta.json            # Cache TTL management
-│   ├── calendar.md          # Google Calendar cache (S3 sync)
-│   └── gmail.md             # Gmail top 10 cache (S3 sync)
-├── errors/                  # Error logs + diagnosis reports
-│   └── known-patterns.jsonl # Known error pattern DB
-└── archive/                 # Archived old data (never deleted)
+├── seen.jsonl               # Seen-URL tracking (union-merge synced both sides)
+├── topics/  memos/  newspaper/  conversations/  context-seeds/  vocab/
+├── reflections/  stats/  sources/  cache/  archive/
+└── errors/                  # logs incl. bridge-watchdog.jsonl, newspaper-gen/deliver
 ```
 
-### 3-Layer Freshness
+### Write Ownership (after the responder cutover)
 
-| Layer | Condition | Access |
-|-------|-----------|--------|
-| Active | <90 days or recently referenced | Auto-surface |
-| Warm | 90-180 days, no references | Explicit search only |
-| Archive | >180 days or user-approved | Archive search only |
+| Data | Owner | Bridge access |
+|------|-------|---------------|
+| memos/ index.jsonl context-seeds/ vocab/ errors/ topics/ conversations/ newspaper/ | Mac | read-write |
+| seen.jsonl | both (union-merge) | read-write |
+| user-profile.yaml reflections/ sources/ stats/ cache/ | Lightsail | read-mostly |
+
+## Permission Model (3 layers)
+
+| Layer | Scope | Behavior |
+|-------|-------|----------|
+| allow | home reads (deny wins) / writes to bochi-data & workspace / WebSearch / trusted-domain WebFetch / Discord tools / status wrappers | no prompt |
+| ask | anything else (writes elsewhere, arbitrary Bash, unknown-domain WebFetch) | Discord 🔐 button approval |
+| hard-deny | secret stores (.ssh/.aws/gh/gcloud/tokens) / enforcement self-mod / tmux interference | not approvable (fail-close guard) |
 
 ## Integrated Frameworks
 
-| Framework | Phase | Origin |
-|-----------|-------|--------|
-| Socratic Method 8 Levels | Phase A | Socrates / Pedagogy |
-| SCAMPER | Phase B | Bob Eberle (1971) |
-| ReAct Pattern | Phase C | Yao et al. (2022) |
-| E-E-A-T | Phase C/D | Google Search Quality Guidelines |
-| First-Principles Thinking | Phase D | Jensen Huang / NVIDIA |
-| Opportunity Solution Tree | Phase E | Teresa Torres |
-| Mom Test / JTBD | Phase F (handoff) | Rob Fitzpatrick / Clayton Christensen |
+Socratic Method · SCAMPER · ReAct · E-E-A-T · First-Principles · Opportunity
+Solution Tree (Teresa Torres) · Mom Test / JTBD.
 
-## When NOT to Use
+## When NOT to use
 
-| Use Case | Reason | Alternative |
-|----------|--------|-------------|
-| Team brainstorming | Designed for individual PMs | Miro AI, FigJam AI |
-| Exhaustive source survey | 3-5 searches have limits | OpenAI Deep Research |
-| Requirements already clear | Expansion phase unnecessary | /requirements_designer |
-| Quantitative data analysis | Qualitative idea expansion only | /pm-data-analysis |
-| Bug fixes for existing product | Not a new idea | /brainstorming |
-| Urgent decisions | Full flow takes time | Ask Claude directly |
-
-## Quality Score (Rubric Self-Assessment)
-
-> Based on GAFA Rubric v2 (5 dimensions x 20 points = 100 max).
-
-| Dimension | v2.3 | v2.4 | Notes |
-|-----------|------|------|-------|
-| Maintainability | 16 | 17 | SKILL.md 350 lines. Mode 2-7 duplicate table removed |
-| Reliability | 15 | 17 | Edge Cases 14/14 specs complete. All fallbacks explicit |
-| Testing & CI | 14 | 15 | 49 tests. Edge Case tests added. RS-03 differentiated |
-| DX | 17 | 18 | Quick Start improved. Session Continuity Protocol added |
-| Product | 16 | 17 | S3 scripts verified present. Vision + proactive save + S3 loop documented |
-| **Total** | **78** | **84** | **Grade B — practical ceiling without structural changes** |
-
-## Architecture
-
-### Owner-Only Learning
-
-Owner (paired user) gets full interaction + learn + memorize. Others get read-only responses.
-
-### Discord UX
-
-- React-first (HARD-GATE): reaction before any text
-- Section splitting: each message <=300 chars, reply-reference chains
-- Progressive Disclosure: react -> placeholder -> edit -> final reply (push notification)
-
-### External Dependencies
-
-| Dependency | Required | Purpose |
-|------------|----------|---------|
-| Discord MCP Plugin | Optional | Discord DM integration |
-| Context7 MCP | Optional | Library docs in tech research |
-| gog CLI | Optional | Google Calendar/Gmail sync (Mac only) |
-| github_project_manager skill | Optional | Mode 7 GitHub Issue delegation |
-| Figma MCP | Optional | FigJam diagram generation |
-
-## Folder Structure
-
-```
-bochi/
-├── SKILL.md                        # Main skill (350 lines, 7-mode router)
-├── README.md                       # Japanese documentation
-├── README.en.md                    # This file
-├── CONTRIBUTING.md                 # [v2.3] Contribution guide
-├── CHANGELOG.md                    # [v2.3] Version history
-├── .markdownlint.json              # [v2.3] Lint config
-├── .github/workflows/quality.yml   # [v2.3] CI/CD
-├── deploy/
-│   ├── lightsail-claude.md         # [v2.2] Lightsail CLAUDE.md + [v2.5] File Protection, Quality Standards
-│   ├── protect-readonly.sh         # [v2.5] PreToolUse hook: blocks writes to protected files
-│   └── restart-bot.sh              # [v2.5] Safe deploy script (6-point smoke test)
-├── tests/                          # [v2.5] Infrastructure, data, Discord E2E tests
-│   ├── infra-check.sh, data-integrity.sh, s3-sync-test.sh
-│   ├── discord-e2e.sh, run-all.sh
-│   └── ...                         # 5 shell scripts total
-├── examples/
-│   └── mode-1-walkthrough.md       # [v2.3] Mode 1 E2E walkthrough
-└── references/                     # 27 files (specs + data, on-demand load)
-    ├── idea-expansion-spec.md      # [v2.3] Mode 1 Phases A-G
-    ├── newspaper-spec.md           # Mode 2
-    ├── casual-chat-spec.md         # Mode 3
-    ├── memory-spec.md              # Mode 4
-    ├── companion-spec.md           # Mode 5 + S3 sync loop
-    ├── google-brief-spec.md        # [v2.2] Mode 6
-    ├── pm-tools-bridge-spec.md     # [v2.2] Mode 7
-    ├── vocab-notebook-spec.md      # Mode 8 Vocabulary + SM-2
-    ├── discord-ux-spec.md          # [v2.1] Discord UX
-    ├── response-speed-spec.md      # [v2.1] Speed optimization (7 techniques)
-    ├── self-healing-spec.md        # Self-healing + JSONL recovery
-    ├── scenario-tests.md           # [v2.4] 49 scenario tests
-    └── ...                         # 15 more spec/data files
-```
+Team brainstorming (use Miro/FigJam AI) · exhaustive multi-source research (use
+Deep Research) · well-defined requirements (use /requirements_designer) ·
+quantitative analysis (use /pm-data-analysis) · substantial implementation in
+other directories (the bridge delegates instead of editing).
 
 ## License & Credits
 
-All framework copyrights and trademarks belong to their original authors. This skill is independently designed and implemented with reference to these methodologies.
+Copyrights and trademarks of each framework belong to their original authors.
+This skill is independently designed and implemented with reference to these
+methods.

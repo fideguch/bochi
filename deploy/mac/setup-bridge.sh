@@ -9,6 +9,9 @@ RUNTIME="/Users/fumito_ideguchi/bochi-runtime"
 AGENTS_DIR="/Users/fumito_ideguchi/Library/LaunchAgents"
 PLIST_MAIN="com.fideguch.claude-bridge"
 PLIST_HEALTH="com.fideguch.claude-bridge-health"
+PLIST_NEWS_GEN="com.fideguch.bochi-newspaper-gen"
+PLIST_NEWS_DELIVER="com.fideguch.bochi-newspaper-deliver"
+ALL_PLISTS="$PLIST_MAIN $PLIST_HEALTH $PLIST_NEWS_GEN $PLIST_NEWS_DELIVER"
 GUI_DOMAIN="gui/$(id -u)"
 
 MODE="${1:---dry-run}"
@@ -29,6 +32,8 @@ install_agents() {
       "deploy/mac/bridge-start.sh:$RUNTIME/bin/bridge-start.sh:555" \
       "deploy/mac/bridge-health.sh:$RUNTIME/bin/bridge-health.sh:555" \
       "deploy/mac/notify-owner.sh:$RUNTIME/bin/notify-owner.sh:555" \
+      "deploy/mac/generate-newspaper.sh:$RUNTIME/bin/generate-newspaper.sh:555" \
+      "deploy/mac/deliver-newspaper.sh:$RUNTIME/bin/deliver-newspaper.sh:555" \
       "deploy/mac/bin/pc-status:$RUNTIME/bin/pc-status:555" \
       "deploy/mac/bin/repo-status:$RUNTIME/bin/repo-status:555"; do
       src="$REPO/${pair%%:*}"; rest="${pair#*:}"; dst="${rest%%:*}"; mode="${rest##*:}"
@@ -41,7 +46,7 @@ install_agents() {
   fi
 
   say "2) LaunchAgents"
-  for name in "$PLIST_MAIN" "$PLIST_HEALTH"; do
+  for name in $ALL_PLISTS; do
     local src="$REPO/deploy/mac/templates/$name.plist" dst="$AGENTS_DIR/$name.plist"
     plutil -lint "$src" > /dev/null
     say "   $name.plist: lint OK"
@@ -59,8 +64,9 @@ install_agents() {
   say "3) Verification"
   if [ "$apply" = "yes" ]; then
     sleep 2
-    launchctl print "$GUI_DOMAIN/$PLIST_MAIN" > /dev/null 2>&1 && say "   $PLIST_MAIN loaded" || say "   WARN: $PLIST_MAIN not loaded"
-    launchctl print "$GUI_DOMAIN/$PLIST_HEALTH" > /dev/null 2>&1 && say "   $PLIST_HEALTH loaded" || say "   WARN: $PLIST_HEALTH not loaded"
+    for name in $ALL_PLISTS; do
+      launchctl print "$GUI_DOMAIN/$name" > /dev/null 2>&1 && say "   $name loaded" || say "   WARN: $name not loaded"
+    done
     bash "$RUNTIME/bin/bridge-start.sh" status || true
   else
     say "   would verify launchctl print + bridge status"
@@ -78,15 +84,17 @@ case "$MODE" in
     ;;
   --uninstall)
     say "Uninstalling..."
-    launchctl bootout "$GUI_DOMAIN/$PLIST_MAIN" 2>/dev/null || true
-    launchctl bootout "$GUI_DOMAIN/$PLIST_HEALTH" 2>/dev/null || true
-    rm -f "$AGENTS_DIR/$PLIST_MAIN.plist" "$AGENTS_DIR/$PLIST_HEALTH.plist"
+    for name in $ALL_PLISTS; do
+      launchctl bootout "$GUI_DOMAIN/$name" 2>/dev/null || true
+      rm -f "$AGENTS_DIR/$name.plist"
+    done
     bash "$RUNTIME/bin/bridge-start.sh" stop 2>/dev/null || true
     say "Uninstalled (runtime dir and data are left in place)"
     ;;
   --status)
-    launchctl print "$GUI_DOMAIN/$PLIST_MAIN" 2>/dev/null | head -12 || echo "$PLIST_MAIN: not loaded"
-    launchctl print "$GUI_DOMAIN/$PLIST_HEALTH" 2>/dev/null | head -12 || echo "$PLIST_HEALTH: not loaded"
+    for name in $ALL_PLISTS; do
+      launchctl print "$GUI_DOMAIN/$name" > /dev/null 2>&1 && echo "$name: loaded" || echo "$name: not loaded"
+    done
     bash "$RUNTIME/bin/bridge-start.sh" status 2>/dev/null || echo "bridge: not running"
     ;;
   *)

@@ -125,8 +125,10 @@ bochi モード中もデータ書き込みは上記 HARD-GATE のパスを使う
 |---|---|---|
 | memos/ index.jsonl context-seeds/ vocab/ errors/ | Mac | 読み書き |
 | seen.jsonl | 両側（union-merge 同期） | 読み書き |
-| topics/ conversations/ | Mac ローカル（S3 push 対象外あり） | 読み書き |
-| newspaper/ sources/ stats/ user-profile.yaml reflections/ cache/ | Lightsail | 読み取りのみ |
+| topics/ conversations/ newspaper/ | Mac ローカル（S3 push 対象外） | 読み書き |
+| sources/ stats/ user-profile.yaml reflections/ cache/ | Lightsail | 読み取りのみ |
+
+新聞は Mac の launchd が毎朝生成（06:20 JST）→配信（08:00 JST）する。`newspaper/YYYY-MM-DD.md` は Mac ローカル。
 
 ## Language
 
