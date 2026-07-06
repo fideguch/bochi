@@ -186,10 +186,11 @@ do_start() {
 
   "$TMUX" -L "$SOCKET" new-session -d -s "$SESSION" "bash $LAUNCHER"
 
-  # Smoke: wait up to 45s for the gateway-listening line
+  # Smoke: wait up to 45s for the listening line or the idle TUI prompt
+  # (claude >=2.1.201 does not always render the "Listening ..." line)
   local waited=0 ok=false
   while [ "$waited" -lt 45 ]; do
-    if pane_text | grep -q "$SMOKE_STRING"; then ok=true; break; fi
+    if pane_text | grep -qE "$SMOKE_STRING|❯"; then ok=true; break; fi
     sleep 3; waited=$((waited + 3))
   done
 
@@ -200,7 +201,7 @@ do_start() {
   fi
 
   if [ "$ok" = true ]; then
-    echo "  PASS: '$SMOKE_STRING' visible (gateway listening)"
+    echo "  PASS: listening line or idle TUI prompt visible"
   else
     # Fail-safe (review finding): CLI updates may change the string again.
     # Process alive but string missing -> WARN, do not fail/restart-loop.
@@ -264,7 +265,7 @@ do_status() {
   local tmux_ok=false claude_n=0 listening=false uptime_str="unknown"
   is_session_alive && tmux_ok=true
   claude_n=$(bridge_claude_count)
-  pane_text | grep -q "$SMOKE_STRING" && listening=true
+  pane_text | grep -qE "$SMOKE_STRING|❯" && listening=true
   if [ "$tmux_ok" = true ]; then
     local created now
     created=$("$TMUX" -L "$SOCKET" display-message -t "$SESSION" -p '#{session_created}' 2>/dev/null || echo "")

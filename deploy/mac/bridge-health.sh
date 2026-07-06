@@ -121,9 +121,13 @@ if echo "$PANE" | grep -qiE "(could not be parsed|malformed and could not)"; the
   exit 0
 fi
 
-# --- Phase 2c: healthy idle (listening) ---
+# --- Phase 2c: healthy idle (listening line OR idle TUI prompt) ---
+# claude >=2.1.201 does not always render the "Listening ..." line, so the
+# composer prompt (❯) is the idle signal. Safe because Phase 1 already
+# verified the claude process exists (a dead claude never reaches here),
+# and pending permission prompts were handled in Phase 2a.
 
-if echo "$PANE" | grep -q "$SMOKE_STRING"; then
+if echo "$PANE" | grep -qE "$SMOKE_STRING|❯"; then
   IDLE_LISTENING=true
 else
   IDLE_LISTENING=false
