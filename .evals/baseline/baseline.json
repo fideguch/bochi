@@ -1,0 +1,32 @@
+{
+  "accepted_run": "2e88b6c_20260706T102541Z",
+  "accepted_at": "2026-07-06T10:25:41Z",
+  "source_sha": "2e88b6c",
+  "assertions": [
+    {
+      "id": "golden-001",
+      "pass_rate": 1,
+      "stddev": 0
+    },
+    {
+      "id": "golden-002",
+      "pass_rate": 1,
+      "stddev": 0
+    },
+    {
+      "id": "trace-014",
+      "pass_rate": 1,
+      "stddev": 0
+    },
+    {
+      "id": "synth-003",
+      "pass_rate": 1,
+      "stddev": 0
+    },
+    {
+      "id": "agent-007",
+      "pass_rate": 1,
+      "stddev": 0
+    }
+  ]
+}
