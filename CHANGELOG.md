@@ -2,6 +2,46 @@
 
 All notable changes to bochi are documented here.
 
+## v2.7.1 (2026-07-08) — Discord Reply Stability Fix (plugin outbound-gate bug)
+
+### Why
+
+ブリッジの reply / edit_message が間欠的に `channel is not allowlisted` で失敗
+（bochi-data/errors/ 2026-07-08 02:40 / 05:15 UTC。fetch_messages は成功するのに送信だけ落ちる）。
+
+### Root Cause（discord.js 14.25.1 実ソース照合済み）
+
+discord プラグイン v0.0.4 の送信ゲート `fetchAllowedChannel` は DM を
+`access.allowFrom.includes(ch.recipientId)` で判定するが、キャッシュ済み DMChannel の
+`recipientId` は **bot 自身の送信で生成されたチャンネルや recipients 欠落の REST 応答では
+undefined** になる（discord.js は `recipients` を含む payload でしか recipientId を設定せず、
+受信ユーザーメッセージだけがキャッシュを修復する）。このため「受信直後の返信は通るが、
+proactive な送信・edit は落ちる」という間欠障害になる。access.json は無関係（破損・外部書換なし）。
+
+### Fixed
+
+- **上流修正を plugin cache に同期**: marketplace 側 server.ts（2026-07-08 12:30 更新、
+  バージョン 0.0.4 のままのステルス修正）に同一バグの修正（`dmChannelUsers` Map による
+  inbound author フォールバック）が入っていたため、
+  `~/.claude/plugins/cache/claude-plugins-official/discord/0.0.4/server.ts` に同期し
+  ブリッジを `bridge-start.sh restart manual` で再起動。バージョン据え置きのため
+  プラグインマネージャは cache を自動更新しない = 手動同期が唯一の適用手段だった。
+  旧版は `server.ts.bak-pre-recipientid-fix` として保持。
+- **残骸 gateway 接続の掃除**: 同一 token の gateway 接続が 10 本あった（6/28〜の放置
+  ターミナルセッション由来）。設計上は無害（`--channels` セッションのみ応答）だが、
+  ブリッジと現用セッション以外の discord MCP 子プロセスを停止し 2 本に削減。
+
+### Added
+
+- **discord プラグインのスコープ限定（gateway 接続の再蓄積防止）**: プラグイン有効 =
+  全セッションで MCP サーバ（= gateway 接続）が自動起動する仕様のため、user スコープ
+  （`~/.claude/settings.json` → dotfiles 実体）で `discord@claude-plugins-official: false`、
+  `deploy/mac/templates/bridge-settings.json`（project スコープ、優先）で `true` に設定。
+  以後 gateway 接続は `~/bochi-runtime` 発のセッションのみ。実機検証済み
+  （`claude plugin list`: runtime=enabled / 他=disabled）。
+  **運用上の注意**: `/discord:access` 等 discord プラグイン操作は今後 `~/bochi-runtime`
+  で claude を起動して行うこと。
+
 ## v2.7 (2026-07-08) — Conversation-Stall Fix via bypassPermissions
 
 ### Why

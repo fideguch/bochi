@@ -1,6 +1,9 @@
 {
   "model": "sonnet",
   "effortLevel": "high",
+  "enabledPlugins": {
+    "discord@claude-plugins-official": true
+  },
   "env": {
     "CLAUDE_BRIDGE": "1"
   },

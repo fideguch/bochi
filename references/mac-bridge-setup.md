@@ -93,6 +93,8 @@ ssh -i ~/.ssh/lightsail-bochi.pem ubuntu@54.249.49.69 \
 | Lightsail ジョブ凍結 | Lightsail 担当の `cache/`（Google 予定・メール）と `reflections/` が **2026-04-14 から更新停止**（2026-07-08 発見）。Mode 6 はキャッシュが古い旨を正直に報告して縮退する。恒久対応は newspaper と同様に **Google 同期の Mac launchd 移行**（未着手・オーナー判断待ち） |
 | 会話中のメッセージ | 処理中に届いた次のメッセージは現ターン終了後に処理される（単一セッション） |
 | サブスク上限 | 上限到達時は応答不能。health が pane の limit 文言を検知して通知 DM を送る |
+| plugin cache の手動同期（v2.7.1） | discord プラグイン v0.0.4 の送信ゲートに recipientId 未解決バグがあり、上流のステルス修正（同バージョン番号のまま marketplace 更新）を `~/.claude/plugins/cache/.../discord/0.0.4/server.ts` に**手動同期**して修正済み。バージョン据え置き更新はプラグインマネージャが cache に反映しないため、今後 marketplace 側が更新された場合も `diff` 確認のうえ手動同期が必要になり得る。症状再発時（`channel is not allowlisted`）はまず cache と marketplace の diff を確認 |
+| discord プラグインのスコープ限定（v2.7.1） | user スコープは `false`、bridge-settings.json（project スコープ・優先）で `true`。gateway 接続は `~/bochi-runtime` 発のセッションのみ生成される。**`/discord:access` 等のプラグイン操作は `~/bochi-runtime` で claude を起動して行うこと**（他ディレクトリでは discord ツール自体が読み込まれない） |
 
 ## セキュリティ設計の根拠
 
