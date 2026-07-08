@@ -90,6 +90,7 @@ ssh -i ~/.ssh/lightsail-bochi.pem ubuntu@54.249.49.69 \
 | CLI 自動更新 | claude はほぼ日次で自動更新される。起動文言変更等は health が WARN+通知に縮退（再起動ループはしない） |
 | See more レース | （v2.6 relay 時代の事象・v2.7 で relay 廃止につき歴史的記録）permission relay の「See more」は複数 gateway 接続の ack レースで "Details no longer available" になることがあった（Allow/Deny 自体は機能した） |
 | 反応学習の休止 | 新聞へのリアクションによるカテゴリ weight 学習は Lightsail 応答停止に伴い休止中（follow-up: Mac 側 Mode 2 実装時に復活） |
+| Lightsail ジョブ凍結 | Lightsail 担当の `cache/`（Google 予定・メール）と `reflections/` が **2026-04-14 から更新停止**（2026-07-08 発見）。Mode 6 はキャッシュが古い旨を正直に報告して縮退する。恒久対応は newspaper と同様に **Google 同期の Mac launchd 移行**（未着手・オーナー判断待ち） |
 | 会話中のメッセージ | 処理中に届いた次のメッセージは現ターン終了後に処理される（単一セッション） |
 | サブスク上限 | 上限到達時は応答不能。health が pane の limit 文言を検知して通知 DM を送る |
 

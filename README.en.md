@@ -54,6 +54,12 @@ Discord DM (owner allowlist only)
 - **Accepted risk**: WebFetch now auto-runs for all domains (ACCEPTED RISK) —
   DMs are owner-only, secret paths are triple read-denied, and the instruction
   layer mitigates fetched-content injection.
+- **Memo flow verified on both surfaces** (2026-07-08): creating and reading the
+  latest memos works from the PC (CLI) and from Discord (phone); writes reach S3
+  within seconds and both surfaces share the same `~/bochi-data`. Known issue:
+  Lightsail-owned `cache/` (Google brief) and `reflections/` frozen since
+  2026-04-14 — permanent fix is a Mac launchd Google-sync job (like the
+  newspaper), pending owner decision.
 
 ## What's New in v2.6 (2026-07-06) — Mac-Resident Claude Bridge
 

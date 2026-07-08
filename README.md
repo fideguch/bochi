@@ -36,6 +36,7 @@ Discord DM（オーナーのみ allowlist）
 - **guard 強化（ask 層の代替）**: egress バイナリ（curl/wget/nc）・`.jsonl` へのシェル書込・グローバル `~/.claude.json` 自己改変の 3 制御を hard-deny に追加。egress ブロックは網羅的ではない（インタープリタ・`/dev/tcp` は残る）が、一次防衛線は秘匿パスの読取遮断。
 - **受容リスク**: WebFetch は全ドメイン自動実行になった（ACCEPTED RISK）。DM はオーナーのみ受信 / 秘匿パスの直接読取は三重遮断（難読化読取の残余は instruction 層で防ぐ受容リスク） / 取得コンテンツ内 instruction への非追従層で緩和。
 - 検証: `tests/mac-bridge-e2e.sh` に guard ケース 10 件追加（egress/.jsonl/~/.claude.json）。deny+hook が bypass 下でも効くことを確認。
+- **メモの双方向運用を実機検証**（2026-07-08）: PC（CLI）↔ Discord（スマホ）の両面からメモの作成・最新読取を確認。書込は数秒で S3 に push され、両サーフェスが同一の `~/bochi-data` を共有する。v2.6 まではメモ保存が権限承認で止まり得たが v2.7 で解消。
 
 ## What's New in v2.6 (2026-07-06) — Mac-Resident Claude Bridge
 
