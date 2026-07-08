@@ -74,7 +74,7 @@ E-E-A-Tスコアや内部ロジック名は表面に出さない。裏で評価�
    `{"url":"...","seen_at":"YYYY-MM-DD","source":"casual","title":"..."}`
 3. Write tool で `/home/ubuntu/bochi-data/seen.jsonl` に書き出し
 
-※ Bash `echo >>` は使用禁止（Permission制御でブロックされる。lightsail-claude.md Write Method準拠）
+※ Bash `echo >>` は使用禁止（v2.7: guard が .jsonl へのシェル書込を物理ブロックする。Write/Edit ツールを使う）
 seen.jsonlに記録しない限り、次回の「おすすめ」で同じ記事が再表示される。
 </HARD-GATE>
 

@@ -1,12 +1,13 @@
 #!/bin/bash
 # bridge-guard.sh — PreToolUse hard-deny guard for the Mac Claude bridge.
 #
-# Layer model (see references/mac-bridge-setup.md):
-#   allow  -> permissions.allow in bridge-settings.json (no prompt)
-#   ask    -> anything else falls through this guard (exit 0) to the
-#             permission system, which relays to Discord approval buttons
-#   deny   -> exit 2: secrets, enforcement files, tmux interference.
-#             Not approvable even by button (anti rubber-stamp).
+# Layer model, v2.7 (see references/mac-bridge-setup.md):
+#   auto-allow -> the bridge runs with --permission-mode bypassPermissions;
+#                 anything this guard passes through (exit 0) auto-runs.
+#   hard-deny  -> exit 2: secrets, enforcement files, tmux interference,
+#                 egress binaries, .jsonl shell writes. This guard (plus
+#                 permissions.deny) is the LAST line of defense — both are
+#                 enforced even under bypassPermissions.
 #
 # Logic lives in bridge-guard.py (same directory as this script).
 # FAIL-CLOSE: any internal error (bad JSON, missing python/py file) exits 2.

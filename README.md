@@ -1,4 +1,4 @@
-# bochi v2.6 — PM Companion
+# bochi v2.7 — PM Companion
 
 アイデアの種（メモ・URL・ひらめき）を「構造化された仮説」に変換し、日々のPM活動を支えるコンパニオン Claude Code スキル。
 **Discord DM から、いつでもこの Mac 上の Claude 本体と会話できる。**
@@ -21,13 +21,21 @@ Discord DM（オーナーのみ allowlist）
   └─ Mac server.ts ───────→ Mac 常駐 Claude Code セッション（唯一の --channels 応答者）
                              ├ tmux -L claude-bridge / launchd 常駐 + 2分 health
                              ├ cwd ~/bochi-runtime（CLAUDE.md = deploy/mac-claude.md）
-                             ├ 権限3層: allow / ask（Discord 🔐 relay）/ hard-deny
+                             ├ 権限2層（v2.7）: auto-allow（bypassPermissions）/ hard-deny（guard + settings.deny）
                              └ ~/.claude/projects/*/memory を横断リコール
 ```
 
 - **応答者は Mac**: `--channels plugin:discord` 付きで起動したセッションだけがメッセージを受け取る。Lightsail は `access.json` の `dmPolicy:"disabled"`（メッセージ毎ホットリロード・1キーで可逆）で受信を止めている。
 - **新聞は Mac で生成→配信**: launchd が毎朝 06:20 JST に生成、08:00 JST に配信（下記）。
 - 詳細な構成・運用・ロールバックは **`references/mac-bridge-setup.md`**。
+
+## What's New in v2.7 (2026-07-08) — 会話が止まらない権限モデル
+
+- **permission relay 廃止 → bypassPermissions**: ブリッジ Claude は `--permission-mode bypassPermissions` 付き launcher（`bridge-start.sh` 生成。settings の defaultMode ではない）で起動する。権限プロンプトが存在しなくなり、Notion MCP・生 Bash 等の承認待ちで会話が止まる実運用問題（2026-07-08 オーナー報告）を解消。権限モデルは 3 層（allow / ask-relay / hard-deny）→ **2 層（auto-allow / hard-deny）**。
+- **hard-deny は bypass 下でも生存**: settings の `permissions.deny` と bridge-guard の PreToolUse hook は bypass モードでも強制される（公式ドキュメント + 実機スパイク claude 2.1.204 で確認: 初回受諾ダイアログは出ず、deny 対象 Read はブロック、旧 ask 対象の生 Bash は即実行）。
+- **guard 強化（ask 層の代替）**: egress バイナリ（curl/wget/nc）・`.jsonl` へのシェル書込・グローバル `~/.claude.json` 自己改変の 3 制御を hard-deny に追加。egress ブロックは網羅的ではない（インタープリタ・`/dev/tcp` は残る）が、一次防衛線は秘匿パスの読取遮断。
+- **受容リスク**: WebFetch は全ドメイン自動実行になった（ACCEPTED RISK）。DM はオーナーのみ受信 / 秘匿パスの直接読取は三重遮断（難読化読取の残余は instruction 層で防ぐ受容リスク） / 取得コンテンツ内 instruction への非追従層で緩和。
+- 検証: `tests/mac-bridge-e2e.sh` に guard ケース 10 件追加（egress/.jsonl/~/.claude.json）。deny+hook が bypass 下でも効くことを確認。
 
 ## What's New in v2.6 (2026-07-06) — Mac-Resident Claude Bridge
 
@@ -37,7 +45,7 @@ Discord DM（オーナーのみ allowlist）
 - **不干渉ガードレール**: 他プロジェクトの Claude セッションに `send-keys`/`attach` しない。重い作業は headless `claude -p`/`--bg` への委譲を提案する。
 - **新聞の生成復活**: Lightsail の RemoteTrigger 生成 cron は機能停止（配信は古い同じ号を毎日再送していた）。生成・配信とも Mac の launchd に移管し、配信は「今日の号」だけを送る（古い号へのフォールバックを撤廃）。
 - **データ層**: bochi-data の実体を `~/bochi-data` へ移設（`~/.claude/` 配下への Write は sensitive-file ブロックされるため。`~/.claude/bochi-data` は symlink）。`seen.jsonl` は両側 push + union-merge 同期。
-- 検証: `tests/mac-bridge-e2e.sh`（40チェック）+ `.evals/`（失敗タクソノミー + eval specs）。
+- 検証: `tests/mac-bridge-e2e.sh`（50チェック）+ `.evals/`（失敗タクソノミー + eval specs）。
 
 <details>
 <summary>v2.5 の変更 — Multimedia Research Expansion</summary>
@@ -186,19 +194,20 @@ Message received → Owner (paired user)? → full interaction + learn + memoriz
 
 Discord: `access.json` の paired user_id で判定（allowlist、オーナー1名）。
 
-### Permission Model（3層）
+### Permission Model（2層・v2.7）
 
 | 層 | 対象 | 挙動 |
 |----|------|------|
-| allow | ホーム読取（deny 優先）/ bochi-data・workspace への書込 / WebSearch / trusted ドメイン WebFetch / Discord ツール / 状態ラッパー | 無プロンプト |
-| ask | それ以外（他所への Write、任意 Bash、未知ドメイン WebFetch） | Discord 🔐 ボタンでスマホ承認 |
-| hard-deny | 秘匿ストア（.ssh/.aws/gh/gcloud/token類）/ enforcement 自己改変 / tmux 干渉 | 承認でも不可（fail-close guard） |
+| auto-allow | guard が止めないものはすべて（ホーム読取 / bochi-data・workspace への書込 / WebSearch / 全ドメイン WebFetch / Discord・Notion ツール / 任意 Bash など） | 無プロンプト（`bypassPermissions` 起動フラグ） |
+| hard-deny | 秘匿ストア（.ssh/.aws/gh/gcloud/token類）/ enforcement 自己改変 / tmux 干渉／ **v2.7 追加: egress バイナリ（curl/wget/nc）・.jsonl シェル書込・~/.claude.json** | 承認でも不可（fail-close guard + settings.deny、bypass 下でも強制） |
+
+> フラグは `bridge-start.sh` 生成の launcher に付与（settings の defaultMode ではない）ため、同じ RUNTIME の headless `claude -p`（新聞生成、allow ルールベース）には影響しない。
 
 ### Self-Healing & Error Reporting
 
 - health（120秒）が tmux/claude/gateway を監視。落ちれば再起動（5回/時 backoff）。
 - **利用上限モーダル**を検知したら「待機」を自動選択し、オーナーに1回通知（リセット後に自動再開）。
-- 権限プロンプトは自動承認しない（健全な待機扱い、10分超で通知）。
+- 権限プロンプトは bypass 下では存在しない。万一表示されたら anomaly（フラグ未反映の可能性）として fail-safe 検知し、自動承認せず 10 分超で通知。
 - Discord応答失敗時は必ずユーザーにエラー報告（沈黙禁止）。
 - 詳細: `references/self-healing-spec.md`, `references/error-reporting-spec.md`
 
@@ -248,7 +257,7 @@ bochi/
 │   ├── bochi-tmux-start.sh / bochi-health-check.sh  # Lightsail 常駐
 │   └── protect-readonly.sh / restart-bot.sh / setup-cron.sh
 ├── tests/
-│   ├── mac-bridge-e2e.sh           # [v2.6] Mac ブリッジ 40チェック
+│   ├── mac-bridge-e2e.sh           # [v2.6] Mac ブリッジ 50チェック（v2.7 で guard ケース +10）
 │   ├── discord-e2e.sh              # Discord 応答品質検証
 │   └── infra-check.sh / data-integrity.sh / s3-sync-test.sh / run-all.sh
 ├── .evals/                         # [v2.6] specs-evals（失敗タクソノミー + eval specs）

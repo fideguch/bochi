@@ -44,6 +44,13 @@
 - trace source: `~/bochi-data/errors/bridge-watchdog.jsonl`（ブリッジ版 watchdog ログ）+ launchd 標準出力ログ
 - 実運用の再起動イベントは watchdog ログに JSONL で残し、次回 error-analysis の入力にする
 
+## v2.7 注記（権限モデル転換）
+
+- 失敗モード「permission プロンプト放置で会話全体が沈黙」は v2.7 で **MITIGATED**:
+  ブリッジは `--permission-mode bypassPermissions` で起動するため権限プロンプトは存在しない。
+- 新しい regression 期待値: ゾーン外の生コマンドは承認待ちで stall せず即実行される。
+  hard-deny（settings.deny + bridge-guard）は bypass 下でも強制されるため、拒否対象は引き続き exit 2。
+
 ## 次のステップ
 
 - [x] dataset 作成（golden 6 件）

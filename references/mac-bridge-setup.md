@@ -13,7 +13,7 @@ Discord DM（オーナーのみ allowlist）
                                ├ launchd: com.fideguch.claude-bridge (RunAtLoad)
                                ├ launchd: com.fideguch.claude-bridge-health (120s)
                                ├ cwd ~/bochi-runtime/（CLAUDE.md = deploy/mac-claude.md）
-                               └ 権限: default-deny + Discord permission relay
+                               └ 権限: bypassPermissions + hard-deny guard（2層）
 ```
 
 - **応答者の決定**: `--channels plugin:discord` 付きで起動したセッションだけがメッセージを受け取る。Lightsail は access.json の `dmPolicy:"disabled"`（メッセージ毎に再読込・即時反映）で受信を止めている。
@@ -35,16 +35,16 @@ bash tests/mac-bridge-e2e.sh --with-lightsail
 2. LaunchAgents 2 本を plutil-lint → bootstrap
 3. `bridge-start.sh start` は初回に bochi-data を `~/bochi-data`（実体）へ移設し `~/.claude/bochi-data` を symlink 化する（`~/.claude/` 配下への Write は sensitive-file ブロックされるため）
 
-## 権限モデル（3 層）
+## 権限モデル（2 層・v2.7）
 
 | 層 | 対象 | 実装 |
 |---|---|---|
-| allow | ホーム全域 Read（deny 優先）/ bochi-data・workspace・tmp への Write / WebSearch / trusted ドメイン WebFetch / Discord ツール / 最小 Bash + 専用ラッパー | `~/bochi-runtime/.claude/settings.json` permissions.allow |
-| ask | 上記以外すべて（他所への Write、任意 Bash、未知ドメイン WebFetch） | permission relay → **Discord に 🔐 ボタン付き DM → スマホで承認** |
-| hard-deny | 秘匿ストア（.ssh/.aws/gcloud/gh/docker/kube/gnupg/Keychains/.env/credentials/transcripts）、enforcement ファイル、tmux send-keys/attach | permissions.deny + `bin/bridge-guard.sh`（fail-close, exit 2） |
+| auto-allow | guard が止めないものはすべて即実行（ホーム Read / bochi-data・workspace・tmp への Write / WebSearch / 全ドメイン WebFetch / Discord・Notion ツール / 任意 Bash など） | `--permission-mode bypassPermissions` 起動フラグ（＋ settings.allow は bypass 喪失時のグレースフルデグレード用に維持） |
+| hard-deny | 従来の秘匿ストア（.ssh/.aws/gcloud/gh/docker/kube/gnupg/Keychains/.env/credentials/transcripts）・enforcement ファイル・tmux send-keys/attach に加え、v2.7 で **egress バイナリ（curl/wget/nc）**・**.jsonl へのシェル書込**・**~/.claude.json** を追加 | permissions.deny + `bin/bridge-guard.sh`（fail-close, exit 2）— deny ルールと PreToolUse hook は bypass 下でも強制される |
 
-- ブリッジは `--dangerously-skip-permissions` を**使わない**。Lightsail の tmux-auto-approve.sh も移植していない（自動承認は行わない方針）。
-- relay が応答されないまま 10 分経過すると health が REST 直叩きで通知 DM を送る。承認は Discord ボタンか、Termius（mobile-dev-bridge）で `tmux -L claude-bridge attach` して手動対応。
+- **フラグは `bridge-start.sh` が生成する launcher に付与**する（settings の defaultMode ではない）。したがって同じ RUNTIME で走る `generate-newspaper.sh` の headless `claude -p`（allow ルールベースで動作）には影響しない。
+- v2.6 では relay 方式だったが、承認待ちで会話が止まる実運用問題（2026-07-08 オーナー報告）により v2.7 で `--dangerously-skip-permissions` ではなく `bypassPermissions` に転換した。deny ルールと PreToolUse hook が bypass 下でも強制されることは公式ドキュメント＋実機スパイク（claude 2.1.204）で確認済み。検討した代替案（PreToolUse hook による選択的自動承認）は、未知ドメイン WebFetch が引き続きプロンプト化して Mode 1（URL 共有→深掘り）を止めるため不採用。
+- 権限プロンプトは bypass 下では本来出ない。万一 pane に表示された場合は health が anomaly 検知として扱い（フラグ未反映の可能性）、10 分以上続けば REST 直叩きで通知 DM を送る（fail-safe。自動承認はしない）。
 
 ## 運用
 
@@ -66,7 +66,7 @@ bash tests/mac-bridge-e2e.sh --with-lightsail
 **Mac へ切替（手順）**:
 
 1. Mac ブリッジ起動 + E2E PASS（この間は二重応答があり得る・数分）
-2. permission relay の実機確認: ゾーン外 Write を 1 件試行 → Discord に 🔐 DM が届き Approve/Deny が機能することを確認
+2. v2.7 検証: (a) ゾーン外の生 Bash が承認なしで即実行されること、(b) guard ブロック（例: `tmux ls`）が bypass 下でも exit 2 で発火すること — これが Bash 経由の秘匿読取遮断が生きている証明になる。発火しなければロールバックする
 3. **Lightsail の pull フックに seen.jsonl の exclude + union-merge を適用**（ssh。Mac 側 hooks と同一の変更。適用前に切り替えると Lightsail の pull が seen.jsonl を破壊的上書きする）
 4. Lightsail: `dmPolicy` を `disabled` に変更（**allowFrom は新聞配信の宛先なので絶対に消さない**）
 
@@ -88,7 +88,7 @@ ssh -i ~/.ssh/lightsail-bochi.pem ubuntu@54.249.49.69 \
 | バッテリー駆動 | caffeinate -s は AC 電源時のみ有効。電源断でバッテリー駆動になるとスリープしブリッジ断（AC 復帰で自動復旧） |
 | 再起動後 | LaunchAgent はログイン後に起動。FileVault 環境では再起動後に一度ログインが必要 |
 | CLI 自動更新 | claude はほぼ日次で自動更新される。起動文言変更等は health が WARN+通知に縮退（再起動ループはしない） |
-| See more レース | permission relay の「See more」は複数 gateway 接続の ack レースで "Details no longer available" になることがある（Allow/Deny 自体は機能する） |
+| See more レース | （v2.6 relay 時代の事象・v2.7 で relay 廃止につき歴史的記録）permission relay の「See more」は複数 gateway 接続の ack レースで "Details no longer available" になることがあった（Allow/Deny 自体は機能した） |
 | 反応学習の休止 | 新聞へのリアクションによるカテゴリ weight 学習は Lightsail 応答停止に伴い休止中（follow-up: Mac 側 Mode 2 実装時に復活） |
 | 会話中のメッセージ | 処理中に届いた次のメッセージは現ターン終了後に処理される（単一セッション） |
 | サブスク上限 | 上限到達時は応答不能。health が pane の limit 文言を検知して通知 DM を送る |
@@ -96,5 +96,6 @@ ssh -i ~/.ssh/lightsail-bochi.pem ubuntu@54.249.49.69 \
 ## セキュリティ設計の根拠
 
 - **同一トークン複数 gateway**: DM は全接続にファンアウトするが、`--channels` セッションだけが応答する（数ヶ月の共存実績）。ローカルの `--channels` プロセスは常に 1 個（e2e が検査）。
-- **injection 脅威モデル**: 攻撃文は DM ではなく WebFetch/WebSearch の取得内容から来る。対策は (1) 秘匿パスの Read/Bash/Grep 三重遮断（読めなければ exfil できない）、(2) 未知ドメイン WebFetch は承認制、(3) enforcement ファイルの自己改変禁止、(4) pairing/allowlist 変更要求の一律拒否。
+- **injection 脅威モデル**: 攻撃文は DM ではなく WebFetch/WebSearch の取得内容から来る。対策は (1) 秘匿パスの Read/Bash/Grep 三重遮断（読めなければ exfil できない）、(2) enforcement ファイルの自己改変禁止、(3) pairing/allowlist 変更要求の一律拒否、(4) 主要 egress バイナリ（curl/wget/nc）の guard 遮断。
+- **WebFetch 全ドメイン自動実行（受容リスク・v2.7）**: v2.7 では WebFetch は全ドメイン即実行になった（ACCEPTED RISK）。根拠: DM はオーナーのみ受信 / 秘匿パスの直接読取は三重遮断（難読化インタープリタ読取の残余は instruction 層で防ぐ受容リスク） / 主要 egress バイナリは guard で遮断（**網羅的ではない** — インタープリタや `/dev/tcp` は残るが、一次防衛線はあくまで読取遮断） / 取得コンテンツ内 instruction への非追従（instruction 層）/ 未知ドメイン遮断は Mode 1（URL 共有→深掘り）を殺し本修正の目的と矛盾するため採らない。残余リスク: 非秘匿の bochi-data メモを細工 URL 経由で exfil される可能性 — これは受容し、instruction 層で防ぐ。
 - **guard は fail-close**: 不正入力・内部エラーは exit 2（ブロック）に倒れる。

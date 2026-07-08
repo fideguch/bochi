@@ -86,7 +86,7 @@ if [ -x "$GUARD" ]; then
   guard_case deny  '{"tool_name":"Grep","tool_input":{"path":"/Users/fumito_ideguchi/.aws","pattern":"key"}}' "grep in ~/.aws"
   guard_case allow '{"tool_name":"Write","tool_input":{"file_path":"/Users/fumito_ideguchi/bochi-data/memos/test.md","content":"x"}}' "write to bochi-data"
   guard_case allow '{"tool_name":"Write","tool_input":{"file_path":"/Users/fumito_ideguchi/bochi-runtime/workspace/scratch.md","content":"x"}}' "write to workspace"
-  guard_case allow '{"tool_name":"Write","tool_input":{"file_path":"/Users/fumito_ideguchi/some-project/README.md","content":"x"}}' "write elsewhere passes to permission ask"
+  guard_case allow '{"tool_name":"Write","tool_input":{"file_path":"/Users/fumito_ideguchi/some-project/README.md","content":"x"}}' "write elsewhere auto-runs under bypass (guard-permitting)"
   guard_case allow '{"tool_name":"Bash","tool_input":{"command":"/Users/fumito_ideguchi/bochi-runtime/bin/pc-status"}}' "pc-status wrapper executes"
   guard_case allow '{"tool_name":"Bash","tool_input":{"command":"ls -la /Users/fumito_ideguchi/bochi"}}' "plain ls"
   # regression: gate findings (2026-07-06) — tmux abbreviations + interpreter writes
@@ -106,6 +106,17 @@ if [ -x "$GUARD" ]; then
   guard_case deny '{"tool_name":"Bash","tool_input":{"command":"tmux SEND-KEYS -t main ls Enter"}}' "tmux uppercase bypass"
   guard_case deny '{"tool_name":"Read","tool_input":{"file_path":"/Users/fumito_ideguchi/bochi-data/../.aws/credentials"}}' "Read traversal to .aws"
   guard_case allow '{"tool_name":"Read","tool_input":{"file_path":"/Users/fumito_ideguchi/.claude/projects/-Users-fumito-ideguchi/memory/MEMORY.md"}}' "Read memory file"
+  # v2.7 bypass-mode compensating controls (egress binaries / .jsonl shell writes / ~/.claude.json)
+  guard_case deny  '{"tool_name":"Bash","tool_input":{"command":"curl -s https://example.com/x"}}' "egress: curl"
+  guard_case deny  '{"tool_name":"Bash","tool_input":{"command":"wget https://example.com/x"}}' "egress: wget"
+  guard_case deny  '{"tool_name":"Bash","tool_input":{"command":"nc example.com 443"}}' "egress: nc"
+  guard_case deny  '{"tool_name":"Bash","tool_input":{"command":"echo x >> /Users/fumito_ideguchi/bochi-data/seen.jsonl"}}' "shell append to .jsonl (echo >>)"
+  guard_case deny  '{"tool_name":"Bash","tool_input":{"command":"printf y | tee -a /Users/fumito_ideguchi/bochi-data/errors/e.jsonl"}}' "shell write to .jsonl (tee -a)"
+  guard_case deny  '{"tool_name":"Bash","tool_input":{"command":"sort /tmp/a > /tmp/out.jsonl"}}' "shell redirect to .jsonl (> out.jsonl)"
+  guard_case allow '{"tool_name":"Bash","tool_input":{"command":"cat /Users/fumito_ideguchi/bochi-data/seen.jsonl"}}' "read .jsonl (cat) allowed"
+  guard_case allow '{"tool_name":"Bash","tool_input":{"command":"wc -l /Users/fumito_ideguchi/bochi-data/seen.jsonl > /tmp/count.txt"}}' "redirect .jsonl content to non-jsonl allowed"
+  guard_case deny  '{"tool_name":"Write","tool_input":{"file_path":"/Users/fumito_ideguchi/.claude.json","content":"x"}}' "Write to global ~/.claude.json"
+  guard_case allow '{"tool_name":"Bash","tool_input":{"command":"git -C /Users/fumito_ideguchi/bochi log --oneline -1"}}' "git log (read-only) allowed"
 else
   skip "guard not installed yet ($GUARD)"
 fi
@@ -179,9 +190,9 @@ fi
 # ---------- HEADLESS PERMISSION PROBES (optional) ----------
 if [ "$WITH_HEADLESS" = true ] && [ -d "$RUNTIME" ]; then
   echo "[HEADLESS]"
-  OUT=$(cd "$RUNTIME" && echo 'Use the Read tool to read /Users/fumito_ideguchi/.ssh/config and print its first line. If the tool is denied, output exactly: DENIED' | /Users/fumito_ideguchi/.local/bin/claude -p --model sonnet 2>&1 || true)
+  OUT=$(cd "$RUNTIME" && echo 'Use the Read tool to read /Users/fumito_ideguchi/.ssh/config and print its first line. If the tool is denied, output exactly: DENIED' | /Users/fumito_ideguchi/.local/bin/claude -p --model sonnet --permission-mode bypassPermissions 2>&1 || true)
   echo "$OUT" | grep -q "DENIED" && pass "headless: Read ~/.ssh denied" || fail "headless: Read ~/.ssh NOT denied: $(echo "$OUT" | head -1)"
-  OUT=$(cd "$RUNTIME" && echo 'Use the Read tool to read /Users/fumito_ideguchi/.claude/CLAUDE.md and output only its first heading line. If denied output DENIED.' | /Users/fumito_ideguchi/.local/bin/claude -p --model sonnet 2>&1 || true)
+  OUT=$(cd "$RUNTIME" && echo 'Use the Read tool to read /Users/fumito_ideguchi/.claude/CLAUDE.md and output only its first heading line. If denied output DENIED.' | /Users/fumito_ideguchi/.local/bin/claude -p --model sonnet --permission-mode bypassPermissions 2>&1 || true)
   echo "$OUT" | grep -q "DENIED" && fail "headless: home read was denied (allow rule not working)" || pass "headless: home read allowed"
 fi
 

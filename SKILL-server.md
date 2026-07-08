@@ -16,7 +16,7 @@ description: |
   or when brainstorming skill is already active for design work.
 ---
 
-# bochi v2.4 — PM Companion
+# bochi v2.7 — PM Companion
 
 アイデアの種を構造化仮説に変換し、日々のPM活動を支えるコンパニオンゆ。
 
@@ -114,8 +114,8 @@ JSONL ファイル（index.jsonl, seen.jsonl, stats/usage.jsonl 等）への追�
 3. Write tool でファイル全体を書き出し
 
 **Bash `echo >>` / `cat >` は使用禁止。**
-理由: Bash経由の `~/.claude/` 書き込みはClaude CodeのPermission制御でブロックされ、
-データが記録されない（v2.5→v2.6で発覚した既読管理全壊の原因）。
+理由: v2.7 では bridge-guard が `.jsonl` へのシェル書込を物理ブロックする（JSONL_SHELL_WRITE ルール）。
+シェル追記は seen.jsonl を破損させ v2.5→v2.6 で既読管理全壊を招いたため、必ず Write/Edit ツールを使う。
 Write tool は protect-readonly.sh で bochi-data/ パスが明示的に許可されている。
 
 ### Write Safety (CRITICAL)

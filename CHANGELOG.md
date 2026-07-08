@@ -2,6 +2,39 @@
 
 All notable changes to bochi are documented here.
 
+## v2.7 (2026-07-08) — Conversation-Stall Fix via bypassPermissions
+
+### Why
+
+Mac 常駐ブリッジ（v2.6）は権限プロンプト（Notion MCP・生 Bash 等）で会話が停止していた。
+オーナーは応答中に Discord の 🔐 承認ボタンを見張れないため、承認待ちで会話がそのまま死ぬ
+実運用問題（2026-07-08 オーナー報告）。
+
+### Changed
+
+- **permission relay を会話パスから撤去**: ブリッジ Claude は `bridge-start.sh` が生成する
+  launcher で `--permission-mode bypassPermissions` 付き起動する（settings の defaultMode
+  ではない）。権限モデルを 3 層（allow / ask-relay / hard-deny）→ **2 層（auto-allow /
+  hard-deny）** に転換。同じ RUNTIME の headless `claude -p`（新聞生成）は allow ルール
+  ベースのため影響なし。
+- **検証済みの安全性**: deny ルールと PreToolUse hook は bypass モードでも強制されることを
+  公式ドキュメント + 実機スパイク（claude 2.1.204）で確認（初回受諾ダイアログは出ず、
+  deny 対象 Read はブロック、旧 ask 対象の生 Bash は即実行）。
+
+### Added
+
+- **guard 強化（撤去した ask 層の代替 3 制御）** (`deploy/mac/bridge-guard.py`):
+  egress バイナリ（curl/wget/nc/ncat/netcat）・`.jsonl` へのシェル書込（`>>`/`tee`/`> *.jsonl`）・
+  グローバル `~/.claude.json` 自己改変を hard-deny に追加。egress ブロックは網羅的ではない
+  （インタープリタ・`/dev/tcp` は残る — 一次防衛線は秘匿パスの読取遮断）。
+- `bridge-settings.json` に `mcp__claude_ai_Notion` allow（bypass 下では無効・フラグ喪失時の
+  グレースフルデグレード用）と `~/.claude.json` の Write/Edit deny を追加。
+- `tests/mac-bridge-e2e.sh` に guard ケース 10 件追加（egress / .jsonl / ~/.claude.json。guard
+  バッテリー計 35 ケース、e2e 全体 約 50 チェック）。headless probe を
+  `--permission-mode bypassPermissions` 付きに更新。
+- ドキュメント・evals を v2.7 に更新（`deploy/mac-claude.md`, `references/*`, `README(.en).md`,
+  `.evals/` specs + dataset）。
+
 ## v2.6.1 (2026-07-06) — Newspaper Revival + Conversation Fixes
 
 ### Fixed

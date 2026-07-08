@@ -11,7 +11,7 @@ PMのモバイルジャーニーに最適化した操作設計ゆ。
 | Morning | Read newspaper | Embed scroll + reactions | Mode 2 |
 | Commute | Idea memo | Text message -> auto memo | Mode 5 |
 | Between meetings | Casual check | 3-5 items -> save with pin | Mode 3 |
-| On the move | Permission approval | `yes abcde` | Permission relay |
+| On the move | ~~Permission approval~~（v2.7 で廃止） | — | bypassPermissions（承認フローなし） |
 | Evening | Memory review | "今日のまとめ" | Mode 4 |
 
 ## Minimal Interaction Design
@@ -29,9 +29,9 @@ No commands needed. No formatting required.
 - Send shorthand: "req-designer", "データ分析", "brainstorm"
 - bochi fuzzy matches and confirms
 
-### Permission Approval (1 message)
-- `yes abcde` or `no abcde`
-- 5 characters, no ambiguity
+### Permission Approval（廃止・歴史的記録）
+v2.7 で permission relay 廃止・`bypassPermissions` 化により承認フローは存在しない
+（旧: `yes abcde` / `no abcde` の 5 文字コード応答）。
 
 ## 4 Handoff Patterns
 
@@ -88,5 +88,4 @@ No commands needed. No formatting required.
 
 - **Voice transcription fails or empty** → 「音声メモ、聞き取れなかったゆ。テキストで送ってくれるゆ？」
 - **Bookmark reaction on bochi's own message** → 無視（自分のメッセージにはメモ作成しない）
-- **Permission approval code expired/invalid** → 「そのコードは無効ゆ。新しいコードを確認してゆ」
 - **Long text on mobile (>500 chars)** → 通常処理、メモ確認は短縮形で返す

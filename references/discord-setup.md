@@ -104,23 +104,17 @@ These are enforced via SKILL.md Owner-Only Protocol, not MCP server config:
 | `fetch_messages` | Get channel history | Context recovery on restart |
 | `download_attachment` | Download to local | User shares images/files |
 
-## Permission Relay
+## Permission Relay（廃止・歴史的記録）
 
-When Claude needs tool approval during Discord-triggered work:
+v2.7 で permission relay は廃止され、Mac ブリッジは `--permission-mode bypassPermissions`
+で起動する（承認フローは存在しない）。hard-deny は settings の `permissions.deny` と
+bridge-guard の PreToolUse hook で担保する（両者は bypass 下でも強制される）。
 
-```
-Claude needs permission
-  |
-  [Terminal dialog] + [Discord message with request_id]
-  |
-  User replies in Discord: "yes abcde" or "no abcde"
-  |
-  First answer (terminal OR Discord) wins
-```
+以下は v2.6 までの歴史的記録:
 
-Format: `/^(y|yes|n|no)\s+([a-km-z]{5})$/i`
-
-This enables mobile permission approval while away from terminal.
+- Claude がツール承認を要すると、端末ダイアログ + Discord に request_id 付きメッセージが出た
+- ユーザーが Discord で `yes abcde` / `no abcde`（`/^(y|yes|n|no)\s+([a-km-z]{5})$/i`）と返すと承認された
+- 端末と Discord のどちらか先の回答が採用された
 
 ## Newspaper via Discord
 
@@ -169,5 +163,5 @@ DISCORD_STATE_DIR=~/.claude/channels/discord-bochi claude --channels ...
 | Bot not responding | Check `claude --channels` is running |
 | Token error | Re-run `/discord:configure <token>` |
 | Messages lost | Session must stay running; restart queues messages |
-| Permission stuck | Approve at terminal or send `yes <id>` in Discord |
+| Permission stuck | （v2.7 で解消）relay 廃止・`bypassPermissions` 化により権限承認待ちは発生しない |
 | Non-owner writing | Check access.json allowlist policy |

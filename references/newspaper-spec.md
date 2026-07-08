@@ -128,7 +128,7 @@ Read→append→Write pattern で index.jsonl に追記:
    - 新エントリのJSONL行を末尾に追加
    - Write tool で書き出し
 
-※ Bash `echo >>` は使用禁止（Permission制御でブロックされる。lightsail-claude.md Write Method準拠）
+※ Bash `echo >>` は使用禁止（v2.7: guard が .jsonl へのシェル書込を物理ブロックする。Write/Edit ツールを使う）
 実行確認: 3操作すべて完了後に最終replyを送信する。
 </HARD-GATE>
 

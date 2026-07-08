@@ -1,4 +1,4 @@
-# bochi v2.6 — PM Companion
+# bochi v2.7 — PM Companion
 
 A Claude Code skill that turns idea seeds (memos, URLs, sparks) into structured
 hypotheses and supports daily PM work as a thinking companion.
@@ -23,7 +23,7 @@ Discord DM (owner allowlist only)
   └─ Mac server.ts ───────→ Mac-resident Claude Code session (the only --channels responder)
                              ├ tmux -L claude-bridge / launchd resident + 120s health
                              ├ cwd ~/bochi-runtime (CLAUDE.md = deploy/mac-claude.md)
-                             ├ 3-layer perms: allow / ask (Discord 🔐 relay) / hard-deny
+                             ├ 2-layer perms (v2.7): auto-allow (bypassPermissions) / hard-deny (guard + settings.deny)
                              └ recalls ~/.claude/projects/*/memory across projects
 ```
 
@@ -33,6 +33,27 @@ Discord DM (owner allowlist only)
 - **Newspaper is generated and delivered on the Mac**: launchd at 06:20 JST
   (generate) and 08:00 JST (deliver).
 - Full setup / ops / rollback: **`references/mac-bridge-setup.md`**.
+
+## What's New in v2.7 (2026-07-08) — Conversations That Never Stall
+
+- **Permission relay removed → bypassPermissions**: the bridge Claude launches
+  with `--permission-mode bypassPermissions` (added to the `bridge-start.sh`-
+  generated launcher, NOT settings `defaultMode`). Permission prompts no longer
+  exist, fixing the real-world stall where Notion MCP / raw Bash approvals froze
+  the conversation (owner report 2026-07-08). The model goes from 3 layers
+  (allow / ask-relay / hard-deny) to **2 layers (auto-allow / hard-deny)**.
+- **Hard-deny survives bypass**: settings `permissions.deny` and the bridge-guard
+  PreToolUse hook are enforced even in bypass mode (confirmed by official docs +
+  a live spike on claude 2.1.204: no first-run dialog, deny-listed Read blocked,
+  previously-ask-gated raw Bash runs instantly).
+- **Guard hardened (compensating for the removed ask layer)**: three new hard-deny
+  controls — egress binaries (curl/wget/nc), shell writes to `.jsonl`, and
+  self-modification of the global `~/.claude.json`. The egress block is NOT
+  exhaustive (interpreters and `/dev/tcp` remain); the primary confidentiality
+  boundary is still the secret-path read-deny.
+- **Accepted risk**: WebFetch now auto-runs for all domains (ACCEPTED RISK) —
+  DMs are owner-only, secret paths are triple read-denied, and the instruction
+  layer mitigates fetched-content injection.
 
 ## What's New in v2.6 (2026-07-06) — Mac-Resident Claude Bridge
 
@@ -46,8 +67,9 @@ Discord DM (owner allowlist only)
   fail-close guard (path-normalized + case-insensitive to close APFS/`../`/
   relative-path/interpreter-write bypasses).
 - **Memory hub**: recalls `~/.claude/projects/*/memory/`. PC state is read via
-  read-only wrappers (`pc-status` / `repo-status`) — raw `ps|grep` / `tmux ls`
-  trigger permission prompts, so the wrappers are mandatory.
+  read-only wrappers (`pc-status` / `repo-status`) — under v2.7 bypass mode raw
+  `ps|grep` also runs without prompting, but the wrappers are recommended for
+  faster, curated, stable output (`tmux ls` stays hard-denied by the guard).
 - **Non-interference guardrail**: never `send-keys`/`attach` into other projects'
   Claude sessions; heavy work is delegated to headless `claude -p`/`--bg`.
 - **Newspaper revival**: the Lightsail RemoteTrigger generation cron had stopped
@@ -56,7 +78,7 @@ Discord DM (owner allowlist only)
 - **Data layer**: bochi-data's real path moved to `~/bochi-data` (writes under
   `~/.claude/` are blocked as sensitive files); `~/.claude/bochi-data` is a
   symlink. `seen.jsonl` is union-merge synced on both sides.
-- Verification: `tests/mac-bridge-e2e.sh` (40 checks) + `.evals/` (failure
+- Verification: `tests/mac-bridge-e2e.sh` (50 checks) + `.evals/` (failure
   taxonomy + eval specs).
 
 ## 8 Modes
@@ -135,13 +157,16 @@ Real path is `~/bochi-data/` (`~/.claude/bochi-data` is a symlink to it).
 | seen.jsonl | both (union-merge) | read-write |
 | user-profile.yaml reflections/ sources/ stats/ cache/ | Lightsail | read-mostly |
 
-## Permission Model (3 layers)
+## Permission Model (2 layers, v2.7)
 
 | Layer | Scope | Behavior |
 |-------|-------|----------|
-| allow | home reads (deny wins) / writes to bochi-data & workspace / WebSearch / trusted-domain WebFetch / Discord tools / status wrappers | no prompt |
-| ask | anything else (writes elsewhere, arbitrary Bash, unknown-domain WebFetch) | Discord 🔐 button approval |
-| hard-deny | secret stores (.ssh/.aws/gh/gcloud/tokens) / enforcement self-mod / tmux interference | not approvable (fail-close guard) |
+| auto-allow | everything the guard doesn't stop (home reads / writes to bochi-data & workspace / WebSearch / all-domain WebFetch / Discord & Notion tools / arbitrary Bash) | no prompt (`bypassPermissions` launch flag) |
+| hard-deny | secret stores (.ssh/.aws/gh/gcloud/tokens) / enforcement self-mod / tmux interference / **v2.7 additions: egress binaries (curl/wget/nc), .jsonl shell writes, ~/.claude.json** | not approvable (fail-close guard + settings.deny, enforced under bypass) |
+
+> The flag lives on the `bridge-start.sh`-generated launcher (not settings
+> `defaultMode`), so the same-runtime headless `claude -p` (newspaper generation,
+> allow-rule based) is unaffected.
 
 ## Integrated Frameworks
 

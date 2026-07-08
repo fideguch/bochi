@@ -42,6 +42,7 @@
       "WebFetch(domain:lennysnewsletter.com)",
       "WebFetch(domain:reddit.com)",
       "mcp__plugin_discord_discord",
+      "mcp__claude_ai_Notion",
       "Bash(ls)",
       "Bash(ls:*)",
       "Bash(ps:*)",
@@ -98,7 +99,9 @@
       "Write(//Users/fumito_ideguchi/.zprofile)",
       "Edit(//Users/fumito_ideguchi/.zprofile)",
       "Write(//Users/fumito_ideguchi/bochi/deploy/**)",
-      "Edit(//Users/fumito_ideguchi/bochi/deploy/**)"
+      "Edit(//Users/fumito_ideguchi/bochi/deploy/**)",
+      "Write(//Users/fumito_ideguchi/.claude.json)",
+      "Edit(//Users/fumito_ideguchi/.claude.json)"
     ]
   },
   "hooks": {

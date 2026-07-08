@@ -1,8 +1,10 @@
 #!/bin/bash
 # bridge-health.sh — launchd StartInterval(120s) monitor for the Mac bridge.
 # Ported from deploy/bochi-health-check.sh (Lightsail) with policy changes:
-#   - permission prompts are HEALTHY waiting (never auto-approved);
-#     if pending >10 min, notify the owner via Discord REST instead
+#   - v2.7: the bridge runs --permission-mode bypassPermissions, so a VISIBLE
+#     permission prompt is an ANOMALY (launch flag not applied / CLI regression),
+#     not normal waiting. Detection is kept as a fail-safe: treat as healthy
+#     waiting (never auto-approve), and if pending >10 min notify the owner.
 #   - rate-limit / tool-parse-failure pane signatures -> notify, not restart
 #   - daily freshness restart only in the 04:30-04:59 JST window when idle
 # Exit codes: 0=healthy, 1=recovered, 2=failed-to-recover, 3=backoff-limit
@@ -103,10 +105,13 @@ if echo "$PANE_TAIL" | grep -qE "(wait for limit to reset|Add funds to continue|
   exit 0
 fi
 
-# --- Phase 2a: permission prompt = healthy waiting + escalation ---
+# --- Phase 2a: permission prompt = ANOMALY under v2.7 bypass (fail-safe) ---
 
-# Match only the prompt UI itself, not conversation text that merely contains
-# the word "permission" (false positive verified 2026-07-06).
+# Under --permission-mode bypassPermissions a prompt should never appear; if one
+# does, the launch flag was not applied or the CLI regressed. Detection kept as
+# a fail-safe with the same "healthy waiting" semantics (exit 0, never
+# auto-approve). Match only the prompt UI itself, not conversation text that
+# merely contains the word "permission" (false positive verified 2026-07-06).
 if echo "$PANE" | grep -qE "(Do you want to proceed|requires approval|Allow once|Allow always|Esc to cancel)"; then
   NOW=$(date +%s)
   if [ -f "$PERM_SINCE_FILE" ]; then
@@ -115,10 +120,10 @@ if echo "$PANE" | grep -qE "(Do you want to proceed|requires approval|Allow once
     SINCE="$NOW"; echo "$NOW" > "$PERM_SINCE_FILE"
   fi
   WAITED=$((NOW - SINCE))
-  echo "PHASE2: permission prompt pending (${WAITED}s) — healthy waiting, never auto-approved"
+  echo "PHASE2: permission prompt visible (${WAITED}s) — ANOMALY under bypass, fail-safe healthy waiting, never auto-approved"
   echo "0" > "$STALE_COUNT_FILE"
   if [ "$WAITED" -gt 600 ]; then
-    "$NOTIFY" bridge-perm "権限承認待ちで10分以上止まっています。Discordの承認ボタン(🔐)に返答するか、後続のメッセージも止まるので不要なら Deny してください。" || true
+    "$NOTIFY" bridge-perm "権限プロンプトが表示されています。bypass 設定では本来出ないはずです（フラグ未反映の可能性）。\`bash ~/bochi/deploy/mac/setup-bridge.sh --apply\` で更新後、\`bridge-start.sh restart\` してください。" || true
   fi
   exit 0
 else

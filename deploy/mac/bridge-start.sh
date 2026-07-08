@@ -4,7 +4,10 @@
 #   - dedicated tmux socket (-L claude-bridge), never the user's default server
 #   - mkdir-based atomic lock (macOS has no flock(1))
 #   - startup string for claude >= 2.1.195: "Listening for messages from"
-#   - NO --dangerously-skip-permissions; NO auto-approve watchdog
+#   - launcher runs --permission-mode bypassPermissions (v2.7): permission
+#     prompts never stall the conversation. Hard-deny still holds via settings
+#     permissions.deny + the bridge-guard PreToolUse hook (both verified
+#     enforced under bypass — docs + live spike 2026-07-08).
 #   - bootstrap prompt injection to recover missed messages after (re)start
 set -euo pipefail
 
@@ -57,8 +60,11 @@ acquire_lock() {
 # --- Idempotent runtime installation ---
 
 ensure_data_dir() {
-  # Real data lives OUTSIDE ~/.claude (writes into ~/.claude are blocked as
-  # sensitive files for non-bypass sessions — verified empirically 2026-07-06).
+  # Real data lives OUTSIDE ~/.claude by design: keeps bochi-data clear of
+  # Claude-config territory and consistent across bridge/newspaper/user
+  # sessions. (The sensitive-file block that made ~/.claude writes fail applied
+  # to the pre-v2.7 non-bypass bridge; v2.7 runs --permission-mode
+  # bypassPermissions, so the layout is a deliberate convention, not a workaround.)
   if [ -d "$DATA_LINK" ] && [ ! -L "$DATA_LINK" ]; then
     if [ -e "$DATA_REAL" ]; then
       # Both exist: merge link-dir content into real dir, then swap
@@ -114,7 +120,7 @@ ensure_runtime() {
 export PATH="$PATH"
 export CLAUDE_BRIDGE=1
 cd "$RUNTIME"
-exec "$CLAUDE_BIN" --model sonnet --channels plugin:discord@claude-plugins-official
+exec "$CLAUDE_BIN" --model sonnet --permission-mode bypassPermissions --channels plugin:discord@claude-plugins-official
 LAUNCHER_EOF
   chmod 555 "$tmp"
   mv -f "$tmp" "$LAUNCHER"

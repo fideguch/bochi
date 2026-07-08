@@ -60,6 +60,7 @@ v2.5→v2.6で発覚した事例:
 - `lightsail-claude.md` (L100): 「Write/Editツールを使用。Bash echo不可」
 - `casual-chat-spec.md` HARD-GATE: Write tool (read-append) に修正済み
 - 結果: Permission制御でブロック → seen.jsonl空 → 既読管理全壊 → 記事が毎回同じ
+  （v2.7 追記: bypass 化で permission ask 層は消えたため、現在この backstop は bridge-guard の `.jsonl` シェル書込ブロック（JSONL_SHELL_WRITE）が担う）
 
 **教訓**: reference specはon-demandロードされるため、ランタイム仕様（lightsail-claude.md）
 との整合性が見落とされやすい。新規・変更時に必ずクロスチェックすること。

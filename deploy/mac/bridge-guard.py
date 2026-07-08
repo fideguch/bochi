@@ -2,8 +2,10 @@
 """bridge-guard.py — hard-deny logic for the Mac Claude bridge PreToolUse hook.
 
 Invoked by bridge-guard.sh with the hook JSON in $BRIDGE_GUARD_INPUT.
-Exit 2 = deny (blocks the tool call), exit 0 = pass through to the
-permission system (allow rules or Discord relay 'ask').
+Exit 2 = deny (blocks the tool call). Under v2.7 bypass mode
+(--permission-mode bypassPermissions) there is no 'ask' layer, so exit 0 means
+the call AUTO-RUNS: this guard is the LAST line of defense together with the
+settings permissions.deny rules (both are enforced even in bypass mode).
 """
 import json
 import os
@@ -41,14 +43,31 @@ SENSITIVE = re.compile(
 # The bridge's own enforcement surface: self-modification is forbidden.
 # 'deploy/mac' and 'mac-claude.md' are matched WITHOUT a repo prefix so that
 # relative writes after `cd` (e.g. `cd ~/bochi && echo x > deploy/mac/...`)
-# are still caught.
+# are still caught. '\.claude\.json' is the GLOBAL ~/.claude.json (trust/config)
+# — the bridge must not modify its own trust store; it does NOT match the
+# separately-covered '.claude/settings.json' (dir path, not a .json suffix).
 ENFORCEMENT = re.compile(
     r"(bochi-runtime/CLAUDE\.md|bochi-runtime/\.claude|bochi-runtime/bin|"
-    r"\.claude/settings(\.local)?\.json|Library/LaunchAgents|"
+    r"\.claude/settings(\.local)?\.json|\.claude\.json\b|Library/LaunchAgents|"
     r"\.claude/scripts/hooks|\.z(shrc|shenv|profile)\b|"
     r"/bochi/deploy/|deploy/mac(/|\b)|mac-claude\.md|"
     r"/tmp/claude-bridge-)",
     re.IGNORECASE,
+)
+
+# v2.7: bypass mode has no 'ask' layer, so these Bash-only controls compensate.
+# EGRESS raises the bar on the most COMMON network-egress binaries. It is NOT
+# exhaustive — interpreter-mediated egress (python/node sockets) and bash
+# /dev/tcp remain reachable; the primary confidentiality boundary is still the
+# SENSITIVE read-deny (unreadable secrets cannot be exfiltrated).
+EGRESS = re.compile(r"\b(curl|wget|nc|ncat|netcat)\b", re.IGNORECASE)
+
+# Shell redirect (> / >>) or tee INTO a *.jsonl file. bochi-data JSONL stores
+# (index/seen/errors) must be edited via the Write/Edit tool (Read->append->
+# Write); a shell append truncated seen.jsonl in the v2.5 corruption incident.
+# Reads/pipes FROM a .jsonl (cat/wc/sort of a .jsonl) are unaffected.
+JSONL_SHELL_WRITE = re.compile(
+    r"(>>?\s*|\btee\s+(-a\s+)?)[^|;&\s]*\.jsonl\b", re.IGNORECASE
 )
 
 # Any bare tmux invocation is forbidden (tmux accepts unambiguous prefix
@@ -96,6 +115,12 @@ if tool == "Bash":
     cmd = str(tool_input.get("command") or "")
     if SENSITIVE.search(cmd):
         deny("command references a sensitive path")
+    if EGRESS.search(cmd):
+        deny("network egress binary is forbidden "
+             "(bypass mode has no ask layer; use WebFetch/WebSearch)")
+    if JSONL_SHELL_WRITE.search(cmd):
+        deny("shell writes to .jsonl are forbidden "
+             "(v2.5 corruption incident) — use the Write/Edit tool")
     if ENFORCEMENT.search(cmd) and WRITEISH.search(cmd):
         deny("command could modify an enforcement file")
     if TMUX_ANY.search(cmd):
@@ -113,5 +138,6 @@ if tool in ("Grep", "Glob"):
         deny("search targets a sensitive path")
     sys.exit(0)
 
-# Unknown matched tool: pass through to the permission system.
+# Unknown matched tool: exit 0 (auto-runs under bypass mode; the deny rules in
+# settings still apply). This guard only hard-denies the surfaces above.
 sys.exit(0)
