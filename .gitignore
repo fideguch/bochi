@@ -1,3 +1,6 @@
 SKILL.md
 worker/*/.wrangler/
 __pycache__/
+
+# Per-machine runtime state (scheduler lock, local settings, worktrees) — not source
+.claude/
