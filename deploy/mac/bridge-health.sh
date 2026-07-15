@@ -21,6 +21,8 @@ TMUX="/opt/homebrew/bin/tmux"
 SMOKE_STRING="Listening for messages from"
 PANE_HASH_FILE="/tmp/claude-bridge-pane-hash"
 STALE_COUNT_FILE="/tmp/claude-bridge-stale-count"
+CHANNEL_STALE_FILE="/tmp/claude-bridge-channel-stale"
+CHANNEL_STALE_THRESHOLD=2  # 2 x 2min = 4 minutes without a channel process
 PERM_SINCE_FILE="/tmp/claude-bridge-perm-since"
 DAILY_MARKER="/tmp/claude-bridge-daily-restart"
 MAX_RESTARTS_PER_HOUR=5
@@ -80,6 +82,33 @@ if [ "$CLAUDE_N" -lt 1 ]; then
   echo "PHASE1 FAIL: bridge claude process missing"
   log_event "health_check_fail" "phase1:claude_process_missing" "false"
   try_restart "claude_process_missing"; exit $?
+fi
+
+# --- Phase 1.5: discord channel MCP server liveness ---
+# 2026-07-15 incident: the discord plugin MCP server missed its startup-connect
+# timeout at the 04:30 daily restart, so claude ran all day with --channels in
+# argv but NO channel attached — Phase 1 and the idle-prompt check both said
+# "healthy-idle" while the owner got zero replies. Claude never retries a
+# failed MCP connect, so a bridge restart is the only recovery. The plugin
+# server runs as a bun child of the bridge claude process; two consecutive
+# misses (~4 min, grace for slow startup/reconnect) trigger a restart, guarded
+# by the existing 5/hour backoff.
+BRIDGE_PID=$(pgrep -f -- "--channels plugin:discord" 2>/dev/null | head -1)
+CHANNEL_PROC_N=0
+if [ -n "$BRIDGE_PID" ]; then
+  CHANNEL_PROC_N=$(pgrep -P "$BRIDGE_PID" -f "claude-plugins-official/discord" 2>/dev/null | wc -l | tr -d ' ')
+fi
+if [ "$CHANNEL_PROC_N" -lt 1 ]; then
+  CH_STALE=$(( $(cat "$CHANNEL_STALE_FILE" 2>/dev/null || echo 0) + 1 ))
+  echo "$CH_STALE" > "$CHANNEL_STALE_FILE"
+  echo "PHASE1.5: discord channel process missing ($CH_STALE/$CHANNEL_STALE_THRESHOLD)"
+  if [ "$CH_STALE" -ge "$CHANNEL_STALE_THRESHOLD" ]; then
+    echo "0" > "$CHANNEL_STALE_FILE"
+    log_event "health_check_fail" "phase1.5:channel_process_missing" "false"
+    try_restart "channel_process_missing"; exit $?
+  fi
+else
+  echo "0" > "$CHANNEL_STALE_FILE"
 fi
 
 PANE=$(pane_text)

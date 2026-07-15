@@ -61,7 +61,10 @@ install_agents() {
     fi
   done
 
-  say "3) Verification"
+  say "3) Discord plugin fast-start patch"
+  patch_discord_plugin "$apply"
+
+  say "4) Verification"
   if [ "$apply" = "yes" ]; then
     sleep 2
     for name in $ALL_PLISTS; do
@@ -71,6 +74,48 @@ install_agents() {
   else
     say "   would verify launchctl print + bridge status"
   fi
+}
+
+patch_discord_plugin() {
+  # 2026-07-15 incident: the plugin's start script runs `bun install` on every
+  # MCP connect, putting the npm registry on the connect path. Connects took
+  # 18-30s and the 04:30 daily restart exceeded claude's 30s startup timeout,
+  # leaving the bridge channel-less all day. Patch: preinstall deps here (AOT,
+  # where time is free) and strip install from the start script. Idempotent;
+  # re-run after plugin version updates (a new cache dir ships the slow script).
+  local apply="$1"
+  local plugin_root="$HOME/.claude/plugins/cache/claude-plugins-official/discord"
+  local ver_dir pkg found=no
+  for ver_dir in "$plugin_root"/*/; do
+    pkg="$ver_dir/package.json"
+    [ -f "$pkg" ] || continue
+    found=yes
+    if ! grep -q '"start": *"bun install' "$pkg"; then
+      say "   $pkg: already patched — skip"
+      continue
+    fi
+    if [ "$apply" = "yes" ]; then
+      if ! (cd "$ver_dir" && bun install --no-summary); then
+        say "   WARN: bun install failed in $ver_dir — leaving start script unpatched"
+        continue
+      fi
+      cp "$pkg" "$pkg.bak-pre-fast-start"
+      /usr/bin/python3 - "$pkg" <<'PY'
+import json, sys
+path = sys.argv[1]
+with open(path) as f:
+    data = json.load(f)
+data["scripts"]["start"] = "bun server.ts"
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+PY
+      say "   patched $pkg (start: bun server.ts; deps preinstalled)"
+    else
+      say "   would preinstall deps + patch $pkg start script"
+    fi
+  done
+  [ "$found" = yes ] || say "   discord plugin cache not found — skip"
 }
 
 case "$MODE" in

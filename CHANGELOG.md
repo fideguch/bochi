@@ -2,6 +2,44 @@
 
 All notable changes to bochi are documented here.
 
+## v2.7.2 (2026-07-15) — Channel-Less Zombie Fix (MCP connect timeout + health blind spot)
+
+### Why
+
+7/15 09:06〜09:26 のオーナー DM 4 通に 👀 だけ付いて返信ゼロ（オーナー報告）。
+ブリッジ本体は「稼働中・healthy-idle」を報告し続けており、無応答が 8 時間検知されなかった。
+
+### Root Cause（MCP ログ・プロセスツリー実測で確定）
+
+1. **接続タイムアウト**: 04:30 の daily freshness restart 時、discord プラグイン MCP サーバの
+   起動接続が claude デフォルトの 30s を超過し失敗（`mcp-logs-plugin-discord-discord/`:
+   `connection timed out after 30000ms`）。プラグインの start script が **接続のたびに
+   `bun install`（npm registry アクセス）を実行**するため、成功日ですら 28.4s と限界だった
+   （04:30 は 7 個の MCP サーバ同時起動と重なる最悪条件）。
+2. **チャンネル無しゾンビ**: claude は MCP 接続失敗を再試行しない。argv に `--channels` は
+   残るため health の Phase 1 は素通りし、pane はアイドルプロンプト表示 = 「healthy-idle」を
+   95 回連続報告（実際は fetch_messages ツール自体が不在）。
+3. **👀 の正体**: 7/11 起動の残骸 gateway（別開発セッションの discord MCP 子プロセス）が
+   同一 token で受信 ack だけ付けていた。v2.7.1 のスコープ限定より前に起動したセッション由来。
+
+### Fixed
+
+- **接続パスから bun install を排除**: `setup-bridge.sh` に `patch_discord_plugin()` を追加。
+  deps を setup 時に事前インストールし、plugin cache の package.json `start` を
+  `bun server.ts` に書換（冪等・`.bak-pre-fast-start` 保持）。接続実測 28.4s → **2.1s**。
+- **MCP_TIMEOUT=120000**: `bridge-start.sh` の launcher 生成に追加。プラグイン更新で
+  cache が再生成され install が復活しても最悪ケースを吸収。
+- **health Phase 1.5（盲点の恒久解消）**: bridge claude の子プロセスに discord プラグイン
+  サーバが居るかを毎 2 分検査。2 回連続不在（≈4 分）で自動再起動（既存の 5 回/h backoff・
+  通知に接続）。以後どんな理由でチャンネルが落ちても放置は最大 ≈4 分。
+- **残骸 gateway 駆除**: 7/11 起動の stale gateway（bun ×2）を停止。
+
+### Verified
+
+- 再起動後: `Starting connection with timeout of 120000ms` → `Successfully connected in 2109ms`
+  → `Channel notifications registered` → bootstrap が未応答 DM を検出し `reply` ×3 送信成功（E2E）。
+- 新 health 手動実行: Phase 1.5 通過・`healthy` exit 0。
+
 ## v2.7.1 (2026-07-08) — Discord Reply Stability Fix (plugin outbound-gate bug)
 
 ### Why

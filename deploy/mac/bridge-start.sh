@@ -119,6 +119,11 @@ ensure_runtime() {
 #!/bin/bash
 export PATH="$PATH"
 export CLAUDE_BRIDGE=1
+# 2026-07-15 incident: the discord plugin MCP server took >30s to connect at
+# the 04:30 daily restart (bun install on the connect path + 7 MCP servers
+# starting at once) and claude's default 30s startup timeout dropped the
+# channel for the whole session. 120s absorbs worst-case cold starts.
+export MCP_TIMEOUT=120000
 cd "$RUNTIME"
 exec "$CLAUDE_BIN" --model sonnet --permission-mode bypassPermissions --channels plugin:discord@claude-plugins-official
 LAUNCHER_EOF
