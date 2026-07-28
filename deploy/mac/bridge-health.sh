@@ -123,6 +123,13 @@ inject_catchup() {
   chat_id=$(resolve_dm_channel 2>/dev/null || echo "")
   # Brace the expansion: bash 3.2 misparses $var adjacent to multibyte chars.
   [ -n "$chat_id" ] && hint="(chat_id: ${chat_id})"
+  # Clear the composer first. Unlike bridge-start.sh, which types into a
+  # session it just created, this runs against a long-lived one where a
+  # half-typed line could still be sitting there — send-keys appends, so the
+  # prompt would be submitted concatenated with it. C-u is a no-op when the
+  # composer is empty, and inbound channel messages never pass through the
+  # composer (they arrive as queue-operation records), so nothing is lost.
+  "$TMUX" -L "$SOCKET" send-keys -t "$SESSION" C-u 2>/dev/null
   # text and Enter must be separate send-keys calls with a pause — a single
   # call is treated as a bracketed paste and never submits.
   "$TMUX" -L "$SOCKET" send-keys -t "$SESSION" \

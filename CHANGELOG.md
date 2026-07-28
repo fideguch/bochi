@@ -36,6 +36,10 @@ All notable changes to bochi are documented here.
   **再起動せずに**注入するので、会話コンテキストは温存される。
 - **二重発火防止**: `try_restart` 成功時にキューを破棄（起動時注入がキャッチアップを兼ねるため）。
   さらに直近 10 分以内に実施済みならスキップし、DarkWake の連打で多重注入しない。
+- **注入前に composer を `C-u` でクリア**: `bridge-start.sh` は自分で作った直後のセッションに
+  打ち込むが、こちらは長寿命セッションが相手で、書きかけの入力が残っていると `send-keys` が
+  **追記**されてプロンプトが連結送信される。空なら no-op。受信チャンネルのメッセージは composer を
+  通らない（`queue-operation` レコードとして届く）ため失うものはない。
 
 ### Verified
 
