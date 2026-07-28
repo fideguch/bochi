@@ -2,6 +2,58 @@
 
 All notable changes to bochi are documented here.
 
+## v2.7.3 (2026-07-28) — Sleep-Loss Recovery（スリープ中に失われた受信の回収）
+
+### Why
+
+7/28 12:04・12:05 のオーナー DM 2 通に 👀 も返信もゼロ。直前の応答は 7/26 11:42 で、
+**57 時間の沈黙**。その間 `bridge-health.sh` は `healthy-idle` を **815 回連続**で報告していた。
+
+### Root Cause（実測で確定）
+
+1. **ホストが寝ている**: ブリッジはノート PC 上で動作する。clamshell（蓋閉じ）スリープは
+   `caffeinate` では防げず、一度入ると Sleep Service / Maintenance Sleep のサイクルに移行して
+   DarkWake は 2〜11 秒しかない。launchd の実績は **7,099 回 / 期待 15,885 回 = 44.7%**
+   （22 日間・StartInterval 120s）。
+2. **スリープ中の受信は永久に失われる**: プロセス凍結中に届いた MESSAGE_CREATE は処理されず、
+   Discord は事後にゲートウェイイベントを再送しない。該当 2 通に 👀（`handleInbound` 内で
+   Claude へ渡す**前**に付く ack）が無いことが証拠。着弾時刻 12:04:52 JST は `pmset -g log` 上の
+   Sleep 区間（11:57:54 開始・997 秒）に完全に含まれる。
+3. **ゲートウェイは無罪**: 起床後、シャードのソケットへ TYPING_START を 5 発注入すると rx **+172B**
+   （アイドル 20 秒では +0B）。WebSocket は正常にイベントを配信していた。プラグインの不具合ではない。
+4. **回収の口が無い**: 未応答を拾う `fetch_messages` 復帰プロンプトは `bridge-start.sh` の起動時に
+   しか存在しない。watchdog は全生存判定（tmux / claude / Phase 1.5 チャンネル子プロセス）を
+   通過するため再起動もしない。無音は仕様上「健全」と定義されていた（`idle alone never restarts`）。
+
+### Fixed
+
+- **Phase 0（wake-gap 検知）を `bridge-health.sh` に追加**: 自前の tick ファイルとの差分が 300s
+  （120s 間隔の 2.5 倍）以上なら「ホストが寝ていた」と判定し、キャッチアップをキューに積む。
+  キューは変数ではなく**ファイル** — モーダル / 権限 / 上限の各分岐が早期 exit するため、
+  アイドルプロンプトを持つ実行まで gap を生存させる必要がある。
+- **Phase 0b（配信）**: 上記の全分岐より**後ろ**に配置。そこへ到達した時点でキー入力待ちが
+  無いことが保証され、send-keys がダイアログに吸われない。`bridge-start.sh` と同じ復帰プロンプトを
+  **再起動せずに**注入するので、会話コンテキストは温存される。
+- **二重発火防止**: `try_restart` 成功時にキューを破棄（起動時注入がキャッチアップを兼ねるため）。
+  さらに直近 10 分以内に実施済みならスキップし、DarkWake の連打で多重注入しない。
+
+### Verified
+
+- `bash -n` / `shellcheck -S warning` ともにクリーン。
+- 初回実行（tick 未作成）でキャッチアップが発火しないことを確認 = 導入時の誤注入なし。
+- 20 分前の tick を書いてスリープ復帰を再現 → `wake_gap` / `wake_catchup` を watchdog jsonl に記録、
+  ペインへ注入、Claude が `fetch_messages` を実行し、**12:01:44Z に未応答 2 通への返信到達を
+  Discord API で確認**。
+
+### Known / Not Fixed
+
+- 新聞パイプラインは同根の別問題として**未修正**。7/26 の生成が `claude -p exit=1` で無言失敗し
+  （`notify-owner` が呼ばれない）、さらに「06:20 生成 → 08:00 配信」という**時刻結合**が
+  スリープ由来の launchd 遅延に耐えられない（gen / deliver とも 21 日間で 13 回 = 62% しか発火せず、
+  7/28 は生成完了が 09:52 で配信ウィンドウを 1 時間 52 分超過）。イベント結合への変更が必要。
+- ホストのスリープ自体は放置（`pmset disablesleep` は未適用）。取りこぼしは Phase 0/0b で
+  吸収する方針のため、返信はスリープ時間ぶん遅延する。
+
 ## v2.7.2 (2026-07-15) — Channel-Less Zombie Fix (MCP connect timeout + health blind spot)
 
 ### Why

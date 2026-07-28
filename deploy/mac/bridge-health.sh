@@ -27,6 +27,11 @@ PERM_SINCE_FILE="/tmp/claude-bridge-perm-since"
 DAILY_MARKER="/tmp/claude-bridge-daily-restart"
 MAX_RESTARTS_PER_HOUR=5
 STALE_THRESHOLD=4   # 4 x 2min = 8 minutes of frozen pane
+TICK_FILE="/tmp/claude-bridge-last-tick"
+CATCHUP_PENDING_FILE="/tmp/claude-bridge-catchup-pending"
+CATCHUP_LAST_FILE="/tmp/claude-bridge-catchup-last"
+WAKE_GAP_THRESHOLD=300  # >2.5x the 120s interval = the host was asleep, not slow
+CATCHUP_COOLDOWN=600    # at most one catch-up per 10 min across dark-wake churn
 
 export PATH="/Users/fumito_ideguchi/.local/bin:/Users/fumito_ideguchi/.bun/bin:/Users/fumito_ideguchi/.nodebrew/current/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
@@ -57,6 +62,10 @@ try_restart() {
     return 3
   fi
   if "$BRIDGE_START" restart "health:$reason"; then
+    # bridge-start.sh injects the same fetch_messages prompt on boot, so a
+    # restart already IS a catch-up — drop any queued one to avoid a double ask.
+    rm -f "$CATCHUP_PENDING_FILE"
+    date +%s > "$CATCHUP_LAST_FILE"
     echo "RECOVERED via restart"
     return 1
   fi
@@ -68,6 +77,85 @@ try_restart() {
 pane_text() {
   "$TMUX" -L "$SOCKET" capture-pane -p -t "$SESSION" 2>/dev/null || true
 }
+
+# Owner DM channel id via Discord REST; empty string on any failure.
+# Duplicated from bridge-start.sh: the two scripts are installed independently
+# by setup-bridge.sh and neither sources the other.
+resolve_dm_channel() {
+  local env_file="$HOME/.claude/channels/discord/.env"
+  local access_file="$HOME/.claude/channels/discord/access.json"
+  [ -f "$env_file" ] && [ -f "$access_file" ] || return 1
+  local token user_id
+  token=$(grep -m1 '^DISCORD_BOT_TOKEN=' "$env_file" | cut -d= -f2- | tr -d '"' | tr -d "'")
+  user_id=$(/usr/bin/python3 -c "
+import json
+try:
+    a = json.load(open('$access_file'))
+    print((a.get('allowFrom') or [''])[0])
+except Exception:
+    print('')
+")
+  [ -n "$token" ] && [ -n "$user_id" ] || return 1
+  curl -s --max-time 10 -X POST "https://discord.com/api/v10/users/@me/channels" \
+    -H "Authorization: Bot $token" -H "Content-Type: application/json" \
+    -d "{\"recipient_id\": \"$user_id\"}" | /usr/bin/python3 -c "
+import json, sys
+try:
+    print(json.load(sys.stdin).get('id', ''))
+except Exception:
+    print('')
+"
+}
+
+# Ask the running bridge to re-read Discord history and answer anything it
+# missed. Same prompt bridge-start.sh injects at boot, but WITHOUT a restart:
+# the session is healthy, it was merely frozen. Returns 0 if injected.
+inject_catchup() {
+  local gap="$1" now last chat_id hint=""
+  now=$(date +%s)
+  last=$(cat "$CATCHUP_LAST_FILE" 2>/dev/null || echo 0)
+  case "$last" in ''|*[!0-9]*) last=0 ;; esac
+  if [ $((now - last)) -lt "$CATCHUP_COOLDOWN" ]; then
+    rm -f "$CATCHUP_PENDING_FILE"
+    echo "PHASE0: catch-up suppressed (last was $((now - last))s ago)"
+    return 1
+  fi
+  chat_id=$(resolve_dm_channel 2>/dev/null || echo "")
+  # Brace the expansion: bash 3.2 misparses $var adjacent to multibyte chars.
+  [ -n "$chat_id" ] && hint="(chat_id: ${chat_id})"
+  # text and Enter must be separate send-keys calls with a pause — a single
+  # call is treated as a bracketed paste and never submits.
+  "$TMUX" -L "$SOCKET" send-keys -t "$SESSION" \
+    "セッション回復: CLAUDE.md の Session Start プロトコルに従って fetch_messages で直近履歴を確認し${hint}、未応答のユーザーメッセージがあれば対応して。無ければ何も送信しないで待機。" 2>/dev/null
+  sleep 1
+  "$TMUX" -L "$SOCKET" send-keys -t "$SESSION" Enter 2>/dev/null
+  echo "$now" > "$CATCHUP_LAST_FILE"
+  rm -f "$CATCHUP_PENDING_FILE"
+  echo "PHASE0: catch-up injected (gap=${gap}s, chat_id=${chat_id:-unknown})"
+  log_event "wake_catchup" "gap:${gap}s" "true"
+  return 0
+}
+
+# --- Phase 0: wake-gap detection ---
+# 2026-07-28 incident: the bridge runs on a laptop that sleeps (clamshell +
+# maintenance sleep; measured 44.7% launchd duty cycle over 22 days). While the
+# host is asleep the plugin process is frozen, so Discord messages that arrive
+# in that window are never seen — Discord does not replay gateway events after
+# the fact, and the gateway itself is provably fine once awake. Every liveness
+# probe below therefore passes and the pane check reports "healthy-idle", which
+# is exactly what happened for 57 hours (stale=815).
+# Detect the gap from our own tick and queue a fetch_messages catch-up. The flag
+# is a file, not a variable, because the modal/limit branches below exit early —
+# the gap must survive until a run that finds an idle prompt to type into.
+NOW_TS=$(date +%s)
+PREV_TICK=$(cat "$TICK_FILE" 2>/dev/null || echo 0)
+case "$PREV_TICK" in ''|*[!0-9]*) PREV_TICK=0 ;; esac
+echo "$NOW_TS" > "$TICK_FILE"
+if [ "$PREV_TICK" -gt 0 ] && [ $((NOW_TS - PREV_TICK)) -ge "$WAKE_GAP_THRESHOLD" ]; then
+  echo "PHASE0: wake gap $((NOW_TS - PREV_TICK))s — queueing catch-up"
+  echo "$((NOW_TS - PREV_TICK))" > "$CATCHUP_PENDING_FILE"
+  log_event "wake_gap" "gap:$((NOW_TS - PREV_TICK))s" "true"
+fi
 
 # --- Phase 1: process liveness ---
 
@@ -186,6 +274,18 @@ if echo "$PANE" | grep -qE "$SMOKE_STRING|❯"; then
   IDLE_LISTENING=true
 else
   IDLE_LISTENING=false
+fi
+
+# --- Phase 0b: deliver a queued catch-up ---
+# Deliberately placed after the modal/permission/limit branches: every one of
+# those exits early, so reaching here proves nothing is waiting for a keystroke
+# and send-keys cannot be swallowed by a dialog. An idle prompt is still
+# required — typing mid-turn would interleave with the model's own output.
+if [ -f "$CATCHUP_PENDING_FILE" ] && [ "$IDLE_LISTENING" = true ]; then
+  if inject_catchup "$(cat "$CATCHUP_PENDING_FILE" 2>/dev/null || echo 0)"; then
+    echo "0" > "$STALE_COUNT_FILE"
+    exit 0
+  fi
 fi
 
 # --- Daily freshness restart: 04:30-04:59 JST, idle, uptime > 20h ---

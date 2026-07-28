@@ -96,6 +96,7 @@ ssh -i ~/.ssh/lightsail-bochi.pem ubuntu@54.249.49.69 \
 | plugin cache の手動同期（v2.7.1） | discord プラグイン v0.0.4 の送信ゲートに recipientId 未解決バグがあり、上流のステルス修正（同バージョン番号のまま marketplace 更新）を `~/.claude/plugins/cache/.../discord/0.0.4/server.ts` に**手動同期**して修正済み。バージョン据え置き更新はプラグインマネージャが cache に反映しないため、今後 marketplace 側が更新された場合も `diff` 確認のうえ手動同期が必要になり得る。症状再発時（`channel is not allowlisted`）はまず cache と marketplace の diff を確認 |
 | discord プラグインのスコープ限定（v2.7.1） | user スコープは `false`、bridge-settings.json（project スコープ・優先）で `true`。gateway 接続は `~/bochi-runtime` 発のセッションのみ生成される。**`/discord:access` 等のプラグイン操作は `~/bochi-runtime` で claude を起動して行うこと**（他ディレクトリでは discord ツール自体が読み込まれない） |
 | plugin cache の fast-start パッチ（v2.7.2） | プラグインの `start` script は素の状態だと接続のたびに `bun install` を実行し、MCP 起動接続が 30s タイムアウトに達し得る（2026-07-15 実障害: チャンネル無しゾンビ）。`setup-bridge.sh --apply` が deps 事前インストール + `start: bun server.ts` への書換を冪等に行う。**プラグインのバージョン更新（新 cache ディレクトリ生成）後は `setup-bridge.sh --apply` を再実行すること**。launcher の `MCP_TIMEOUT=120000` と health Phase 1.5（チャンネルプロセス監視・不在 ≈4 分で自動再起動）が保険 |
+| ホストのスリープと取りこぼし（v2.7.3） | ブリッジはノート PC 上で動くため、clamshell（蓋閉じ）スリープ中に届いた DM は**永久に失われる**（プロセス凍結中は `messageCreate` が処理されず、Discord はイベントを再送しない）。`caffeinate` では clamshell スリープを防げない。health の Phase 0 が tick 差分 ≥300s で「寝ていた」と判定し、Phase 0b が `fetch_messages` 復帰プロンプトを**再起動せずに**注入して回収する。**返信はスリープ時間ぶん遅延する**のが正常挙動。常時即応が必要なら `sudo pmset -a disablesleep 1`（要 AC 接続・未適用） |
 
 ## セキュリティ設計の根拠
 
