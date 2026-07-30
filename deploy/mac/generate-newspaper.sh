@@ -14,6 +14,24 @@ DATA="/Users/fumito_ideguchi/bochi-data"
 NEWS_DIR="$DATA/newspaper"
 LOG="$DATA/errors/newspaper-gen.log"
 CLAUDE_BIN="/Users/fumito_ideguchi/.local/bin/claude"
+DELIVER="$RUNTIME/bin/deliver-newspaper.sh"
+NOTIFY="$RUNTIME/bin/notify-owner.sh"
+
+# Deliver as soon as an issue exists, instead of trusting the clock.
+# The old design coupled the two jobs by time (generate 06:20 JST, deliver
+# 08:00 JST) and assumed generation finishes inside 1h40m. On a laptop that
+# sleeps mid-run it does not: on 2026-07-30 generation took 2h11m of wall clock
+# (frozen while asleep) and the delivery job ran 8m35s too early, found no file,
+# skipped, and that issue was never sent. deliver-newspaper.sh is idempotent via
+# a per-day marker, so the 08:00 job stays as a backstop.
+deliver_now() {
+  [ -x "$DELIVER" ] || { log "deliver script missing ($DELIVER) — 08:00 backstop only"; return; }
+  if "$DELIVER" >> "$LOG" 2>&1; then
+    log "delivery triggered inline (ok)"
+  else
+    log "delivery triggered inline (rc=$? — backstop will retry)"
+  fi
+}
 
 export PATH="/Users/fumito_ideguchi/.local/bin:/Users/fumito_ideguchi/.bun/bin:/Users/fumito_ideguchi/.nodebrew/current/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 export CLAUDE_BRIDGE=1
@@ -37,7 +55,11 @@ count_rows() {
 log "--- generate start ($DATE) ---"
 
 if [ -s "$OUT" ] && [ "$(count_rows "$OUT")" -ge 5 ]; then
-  log "already generated ($(count_rows "$OUT") rows) — skip"
+  log "already generated ($(count_rows "$OUT") rows) — skip generation"
+  # Still attempt delivery: a re-run (launchd retry after a sleep-deferred
+  # window) may be the first chance an existing-but-undelivered issue gets sent.
+  # The marker makes this a no-op once it has actually gone out.
+  deliver_now
   exit 0
 fi
 
@@ -88,14 +110,22 @@ ROWS=$(count_rows "$BUILD")
 if [ -s "$BUILD" ] && [ "$ROWS" -ge 5 ] && grep -q '^# Daily Brief' "$BUILD"; then
   mv -f "$BUILD" "$OUT"        # atomic within the same directory
   log "--- generate ok ($ROWS rows, published) ---"
+  deliver_now
   exit 0
 fi
 
 # Malformed / missing build → keep aside for debugging, never publish.
+# Notify the owner: a silent failure here is how 2026-07-27 lost its issue with
+# nobody noticing for two days (claude -p exit=1, no alert anywhere).
 if [ -f "$BUILD" ]; then
   mv -f "$BUILD" "$BUILD.partial" 2>/dev/null || rm -f "$BUILD"
   log "build malformed ($ROWS rows) — not published; delivery will skip"
+  REASON="生成物の形式が不正（記事行 ${ROWS} 行）"
 else
   log "no build file produced (claude exit=$RC) — delivery will skip"
+  REASON="生成物が作られなかった（claude -p exit=${RC}）"
+fi
+if [ -x "$NOTIFY" ]; then
+  "$NOTIFY" newspaper-gen-failed "${DATE} の朝刊生成に失敗しました: ${REASON}。ログ: ~/bochi-data/errors/newspaper-gen.log" >/dev/null 2>&1 || true
 fi
 exit 1
